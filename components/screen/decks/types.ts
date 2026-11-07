@@ -19,6 +19,12 @@ export interface Slide {
   notes?: string;
   // Si la diapositiva es una votación: índice de la pregunta en la encuesta.
   questionIndex?: number;
+  // Panel lateral opcional (ej. definición y analogía). Solo se ve cuando el
+  // admin lo habilita desde el panel de control.
+  sidePanel?: {
+    label: string;
+    render: (ctx: SlideContext) => ReactNode;
+  };
   // Ocupa toda la pantalla, sin el margen de las demás diapositivas (ej. portada).
   fullBleed?: boolean;
   render: (ctx: SlideContext) => ReactNode;
@@ -29,4 +35,6 @@ export interface Deck {
   // Se elige el deck cuya encuesta tenga este título.
   surveyTitle: string;
   slides: Slide[];
+  // Preguntas y votos de ejemplo para /screen/preview (mismas que el seed).
+  preview?: { text: string; options: string[]; counts: number[] }[];
 }

@@ -1,6 +1,5 @@
 "use client";
 
-import { UsersIcon } from "lucide-react";
 import { motion } from "motion/react";
 import { ResultBars } from "@/components/shared/result-bars";
 import { ScreenView } from "@/lib/types/api";
@@ -42,7 +41,6 @@ export function VoteSlide({ ctx, questionIndex, kicker }: { ctx: SlideContext; q
   const closed = ctx.state.currentQuestionId === question._id && !ctx.state.acceptingResponses;
   if (closed && results) return <ResultsReveal results={results} kicker={kicker} />;
   const showChart = ctx.state.screenView === ScreenView.RESULTS && results;
-  const total = results?.totalResponses ?? 0;
 
   return (
     <SlideFrame className="gap-[4vh]">
@@ -51,7 +49,7 @@ export function VoteSlide({ ctx, questionIndex, kicker }: { ctx: SlideContext; q
         <Title className="max-w-[75%]">{question.text}</Title>
       </div>
 
-      <div className="grid items-start gap-[3vw] lg:grid-cols-[1fr_auto]">
+      <div className="flex flex-col gap-[2.5vh]">
         {showChart ? (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
             <ResultBars results={results} size="lg" />
@@ -75,18 +73,9 @@ export function VoteSlide({ ctx, questionIndex, kicker }: { ctx: SlideContext; q
           </div>
         )}
 
-        <div className="flex flex-col gap-[2vh]">
-          <div className="flex items-center justify-center gap-3 text-[clamp(1.2rem,2vw,2.2rem)]">
-            <UsersIcon className="size-[1.2em] text-muted-foreground" />
-            <motion.span key={total} initial={{ scale: 1.3 }} animate={{ scale: 1 }} className="font-bold tabular-nums">
-              {total}
-            </motion.span>
-            <span className="text-muted-foreground">{total === 1 ? "voto" : "votos"}</span>
-          </div>
-          {!ctx.state.acceptingResponses && (
-            <p className="text-center text-[clamp(1rem,1.5vw,1.6rem)] text-muted-foreground">Votación cerrada</p>
-          )}
-        </div>
+        {!ctx.state.acceptingResponses && (
+          <p className="text-[clamp(1rem,1.5vw,1.6rem)] text-neutral-400">Votación cerrada</p>
+        )}
       </div>
     </SlideFrame>
   );

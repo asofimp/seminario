@@ -77,6 +77,8 @@ export interface PresentationState {
   showResultsToAudience: boolean;
   // Diapositiva que muestra la pantalla proyectada (/screen/[code]).
   slideIndex: number;
+  // Panel lateral de la diapositiva actual (lo abre el admin).
+  showSidePanel: boolean;
 }
 
 export interface Presentation extends MongoDoc {

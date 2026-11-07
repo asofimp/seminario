@@ -3,7 +3,7 @@
 // por índice: 0 = herramientas de IA, 1 = agentes de IA, 2 = autonomía.
 
 import {
-  ArrowRightIcon,
+  ArrowUpIcon,
   BoxIcon,
   BrainCircuitIcon,
   BrainIcon,
@@ -18,7 +18,6 @@ import {
   RefreshCwIcon,
   SearchIcon,
   ShieldAlertIcon,
-  ShieldCheckIcon,
   SirenIcon,
   TargetIcon,
   UserCheckIcon,
@@ -27,11 +26,10 @@ import {
   ZapIcon,
 } from "lucide-react";
 import { motion } from "motion/react";
-import { BackgroundLines } from "@/components/ui/background-lines";
-import { LampContainer } from "@/components/ui/lamp";
 import { Meteors } from "@/components/ui/meteors";
-import { Callout, Footnote, Kicker, Lead, SlideFrame, Tile, Title } from "../slide-kit";
-import { JoinBox, VoteSlide } from "../vote-slide";
+import { Footnote, Kicker, Note, SlideFrame, Tile, Title } from "../slide-kit";
+import { ClosingSlide, CoverSlide } from "../slide-blocks";
+import { VoteSlide } from "../vote-slide";
 import type { Deck } from "./types";
 
 const AGENDA = [
@@ -47,6 +45,15 @@ const AGENDA = [
 export const fase1Deck: Deck = {
   id: "fase-1",
   surveyTitle: "Fase 1 · Agentes de IA y su aplicación",
+  preview: [
+    { text: "¿Has usado alguna herramienta de IA?", options: ["Sí, a diario", "Sí, de vez en cuando", "Nunca"], counts: [14, 9, 2] },
+    { text: "¿Has usado un agente de IA?", options: ["Sí", "No", "No estoy seguro"], counts: [6, 8, 11] },
+    {
+      text: "Su empresa ya tiene un agente de IA de ciberseguridad. ¿Cuánta autonomía le darían?",
+      options: ["Que solo recomiende y yo apruebo", "Que actúe dentro de límites y yo vigile", "Que decida y ejecute solo", "Ninguna: todavía no confío"],
+      counts: [7, 12, 2, 4],
+    },
+  ],
   slides: [
     // ---------- Portada ----------
     {
@@ -56,14 +63,9 @@ export const fase1Deck: Deck = {
       notes:
         "Hoy hablo de agentes de IA y su aplicación, con la ciberseguridad como ejemplo. Meta: que al terminar puedan explicar qué es un agente, qué hace y quién lo construye.",
       render: (ctx) => (
-        <BackgroundLines className="flex h-full w-full flex-col items-center justify-center px-4 md:h-full">
-          <h2 className="relative z-20 bg-gradient-to-b from-neutral-900 to-neutral-700 bg-clip-text py-2 text-center font-sans text-2xl font-bold tracking-tight text-transparent md:py-10 md:text-4xl lg:text-7xl dark:from-neutral-600 dark:to-white">
-            Ciberseguridad con <br /> Inteligencia Artificial
-          </h2>
-          <div className="absolute bottom-[5vh] left-1/2 z-20 -translate-x-1/2">
-            <JoinBox code={ctx.code} joinHost={ctx.joinHost} compact />
-          </div>
-        </BackgroundLines>
+        <CoverSlide ctx={ctx}>
+          Ciberseguridad con <br /> Inteligencia Artificial
+        </CoverSlide>
       ),
     },
 
@@ -96,7 +98,7 @@ export const fase1Deck: Deck = {
       questionIndex: 0,
       notes:
         "Abrir la votación en la web. Mostrar la gráfica de la pregunta 1 y comentarla (casi todos usan IA).",
-      render: (ctx) => <VoteSlide ctx={ctx} questionIndex={0} kicker="Antes de empezar · Pregunta 1" />,
+      render: (ctx) => <VoteSlide ctx={ctx} questionIndex={0} kicker="Agentes con IA" />,
     },
     {
       title: "Votación: ¿has usado un agente?",
@@ -104,7 +106,7 @@ export const fase1Deck: Deck = {
       questionIndex: 1,
       notes:
         "Mostrar la gráfica de la pregunta 2: comentar el porcentaje de “No estoy seguro” y “No”. No dar aún la definición: “al terminar sabrán la diferencia”.",
-      render: (ctx) => <VoteSlide ctx={ctx} questionIndex={1} kicker="Antes de empezar · Pregunta 2" />,
+      render: (ctx) => <VoteSlide ctx={ctx} questionIndex={1} kicker="Agentes con IA" />,
     },
 
     // ---------- 1. Qué es ----------
@@ -113,13 +115,25 @@ export const fase1Deck: Deck = {
       duration: "~1:45",
       notes:
         "Objetivo + herramientas + autonomía. Volver a la gráfica 2: “muchos de los que dudaron ya usan agentes”.",
+      // Definición y analogía: solo en el panel lateral, si el admin lo abre.
+      sidePanel: {
+        label: "definición y analogía",
+        render: () => (
+          <>
+            <Note label="Definición">
+              Un agente de IA es un sistema que, a partir de un objetivo, planifica, usa herramientas y decide sus
+              pasos para cumplirlo.
+            </Note>
+            <Note label="Analogía">
+              Como delegar una investigación a un analista junior con acceso a los sistemas.
+            </Note>
+          </>
+        ),
+      },
       render: () => (
         <SlideFrame>
-          <Kicker>1 · Qué es</Kicker>
-          <Callout label="Definición" className="text-[clamp(1.3rem,2.3vw,2.6rem)]">
-            Un agente de IA es un sistema que, a partir de un <b>objetivo</b>, planifica, usa{" "}
-            <b>herramientas</b> y decide sus pasos para cumplirlo.
-          </Callout>
+          <Kicker>Qué es</Kicker>
+          <Title>¿Qué es un agente de IA?</Title>
           <div className="grid gap-[1.2vw] sm:grid-cols-3">
             <Tile icon={<TargetIcon />} title="Objetivo">“Investiga esta alerta”</Tile>
             <Tile icon={<WrenchIcon />} title="Tool use">SIEM, EDR, APIs, código</Tile>
@@ -130,9 +144,6 @@ export const fase1Deck: Deck = {
             <Tile icon={<WorkflowIcon />} title="SOAR">Sigue un playbook determinista</Tile>
             <Tile icon={<BrainCircuitIcon />} title="Agente" highlight>Planifica y decide</Tile>
           </div>
-          <Lead>
-            <b className="text-foreground">Analogía:</b> como delegar una investigación a un analista junior con acceso a los sistemas.
-          </Lead>
         </SlideFrame>
       ),
     },
@@ -141,28 +152,59 @@ export const fase1Deck: Deck = {
     {
       title: "2. Cómo funciona",
       duration: "~1:00",
+      sidePanel: {
+        label: "idea clave",
+        render: () => <Note label="Idea clave">Lo que convierte a un modelo en agente son las herramientas: no solo conversa, actúa sobre sistemas reales.</Note>,
+      },
       render: () => (
         <SlideFrame>
-          <Kicker>2 · Cómo funciona</Kicker>
+          <Kicker>Cómo funciona</Kicker>
           <Title>Un ciclo de 5 pasos</Title>
-          <div className="flex flex-wrap items-center gap-[0.8vw]">
-            {[
-              { icon: <FlagIcon />, label: "Objetivo" },
-              { icon: <BrainIcon />, label: "Razonar" },
-              { icon: <WrenchIcon />, label: "Tool call" },
-              { icon: <EyeIcon />, label: "Observar" },
-              { icon: <RefreshCwIcon />, label: "Replanificar" },
-            ].map((step, i, all) => (
-              <div key={step.label} className="flex items-center gap-[0.8vw]">
-                <div className="flex flex-col items-center gap-[0.8vh] rounded-2xl border border-white/10 bg-white/[0.04] px-[1.4vw] py-[2vh] backdrop-blur">
-                  <span className="font-mono text-[clamp(0.8rem,1.1vw,1.2rem)] text-cyan-400">{i + 1}</span>
-                  <span className="text-primary [&_svg]:size-[clamp(1.6rem,2.6vw,3rem)]">{step.icon}</span>
-                  <span className="text-[clamp(1rem,1.6vw,1.8rem)] font-semibold">{step.label}</span>
-                </div>
-                {i < all.length - 1 && <ArrowRightIcon className="size-[clamp(1rem,1.8vw,2rem)] text-neutral-400" />}
-              </div>
-            ))}
-            <RefreshCwIcon className="ml-[0.5vw] size-[clamp(1.2rem,2vw,2.2rem)] text-cyan-400" />
+          {/* Línea de tiempo del ciclo: pasos unidos por una línea y retorno al paso 2. */}
+          <div className="relative mt-[2vh] mb-[8vh]">
+            <motion.div
+              className="absolute top-[clamp(1.75rem,2.75vw,3rem)] right-[10%] left-[10%] h-px origin-left bg-gradient-to-r from-violet-500/60 via-cyan-400/60 to-violet-500/60"
+              initial={{ scaleX: 0 }}
+              animate={{ scaleX: 1 }}
+              transition={{ duration: 1.2, ease: "easeInOut" }}
+            />
+            <ol className="relative grid grid-cols-5">
+              {[
+                { icon: <FlagIcon />, label: "Objetivo" },
+                { icon: <BrainIcon />, label: "Razonar" },
+                { icon: <WrenchIcon />, label: "Tool call" },
+                { icon: <EyeIcon />, label: "Observar" },
+                { icon: <RefreshCwIcon />, label: "Replanificar" },
+              ].map((step, i) => (
+                <motion.li
+                  key={step.label}
+                  className="flex flex-col items-center gap-[1.2vh] text-center"
+                  initial={{ opacity: 0, y: 14 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.25 + i * 0.18, duration: 0.45 }}
+                >
+                  <span className="flex size-[clamp(3.5rem,5.5vw,6rem)] items-center justify-center rounded-full border border-white/15 bg-neutral-950 text-cyan-300 shadow-[0_0_30px_-10px] shadow-cyan-400/40 [&_svg]:size-[40%]">
+                    {step.icon}
+                  </span>
+                  <span className="font-mono text-[clamp(0.75rem,1vw,1.1rem)] text-neutral-500">
+                    {String(i + 1).padStart(2, "0")}
+                  </span>
+                  <span className="text-[clamp(1.05rem,1.7vw,1.9rem)] font-semibold">{step.label}</span>
+                </motion.li>
+              ))}
+            </ol>
+            {/* Retorno: de "Replanificar" vuelve a "Razonar" */}
+            <motion.div
+              className="absolute top-full right-[10%] left-[30%] mt-[1.8vh] h-[3.5vh] rounded-b-2xl border border-t-0 border-dashed border-white/20"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 1.3, duration: 0.6 }}
+            >
+              <ArrowUpIcon className="absolute -top-[0.9em] -left-[0.55em] size-[clamp(0.9rem,1.3vw,1.4rem)] bg-transparent text-neutral-400" />
+              <span className="absolute top-full left-1/2 mt-[0.6vh] -translate-x-1/2 text-[clamp(0.85rem,1.2vw,1.3rem)] whitespace-nowrap text-neutral-500">
+                se repite hasta cumplir el objetivo
+              </span>
+            </motion.div>
           </div>
           <div className="flex flex-wrap gap-[0.8vw]">
             <span className="text-[clamp(1rem,1.5vw,1.6rem)] text-neutral-400">Piezas del agente:</span>
@@ -172,9 +214,6 @@ export const fase1Deck: Deck = {
               </span>
             ))}
           </div>
-          <Callout label="Idea clave">
-            Lo que convierte a un modelo en agente son las herramientas: no solo conversa, <b>actúa sobre sistemas reales</b>.
-          </Callout>
         </SlideFrame>
       ),
     },
@@ -185,7 +224,7 @@ export const fase1Deck: Deck = {
       duration: "~0:50",
       render: () => (
         <SlideFrame>
-          <Kicker>3 · Para qué sirve</Kicker>
+          <Kicker>Para qué sirve</Kicker>
           <Title>Usos en ciberseguridad</Title>
           <div className="grid gap-[1.2vw] sm:grid-cols-3">
             <Tile icon={<SirenIcon />} title="Triaje de alertas">SOC · Nivel 1 y 2</Tile>
@@ -216,9 +255,13 @@ export const fase1Deck: Deck = {
       duration: "~1:00",
       notes:
         "Esto prepara la votación final: las opciones A, B y C de la última pregunta son estos tres niveles. Ejemplo: Project Perception (Microsoft).",
+      sidePanel: {
+        label: "idea clave",
+        render: () => <Note label="Idea clave">La autonomía se gana poco a poco, como la confianza en un analista nuevo: más riesgo, más supervisión.</Note>,
+      },
       render: () => (
         <SlideFrame>
-          <Kicker>4 · Cómo se usa</Kicker>
+          <Kicker>Cómo se usa</Kicker>
           <Title>Tres niveles de autonomía</Title>
           <div className="grid items-end gap-[1.2vw] sm:grid-cols-3">
             {[
@@ -238,9 +281,6 @@ export const fase1Deck: Deck = {
           <p className="text-center text-[clamp(0.9rem,1.3vw,1.4rem)] text-neutral-400">
             más autonomía → más riesgo → más supervisión
           </p>
-          <Callout label="Idea clave">
-            La autonomía se gana poco a poco, como la confianza en un analista nuevo: más riesgo, más supervisión.
-          </Callout>
         </SlideFrame>
       ),
     },
@@ -249,9 +289,13 @@ export const fase1Deck: Deck = {
     {
       title: "5. Quién los desarrolló",
       duration: "~0:30",
+      sidePanel: {
+        label: "idea clave",
+        render: () => <Note label="Idea clave">Los grandes actores ya compiten en este terreno, y las cifras de rendimiento las declaran los propios fabricantes.</Note>,
+      },
       render: () => (
         <SlideFrame>
-          <Kicker>5 · Quién los desarrolló</Kicker>
+          <Kicker>Quién los desarrolló</Kicker>
           <Title>Los grandes actores ya compiten</Title>
           <div className="grid gap-[1.2vw] sm:grid-cols-5">
             {[
@@ -264,9 +308,6 @@ export const fase1Deck: Deck = {
               <Tile key={company} title={company}>{project}</Tile>
             ))}
           </div>
-          <Callout label="Idea clave">
-            Los grandes actores ya compiten en este terreno, y las cifras de rendimiento las declaran los propios fabricantes.
-          </Callout>
         </SlideFrame>
       ),
     },
@@ -278,7 +319,7 @@ export const fase1Deck: Deck = {
       notes: "MDASH de Microsoft: más de 100 agentes.",
       render: () => (
         <SlideFrame>
-          <Kicker>6 · Cómo se implementó</Kicker>
+          <Kicker>Cómo se implementó</Kicker>
           <Title>Cinco capas</Title>
           <div className="flex flex-col gap-[1.2vh]">
             {[
@@ -308,9 +349,13 @@ export const fase1Deck: Deck = {
     {
       title: "7. Qué han logrado",
       duration: "~0:45",
+      sidePanel: {
+        label: "idea clave",
+        render: () => <Note label="Idea clave">Los atacantes también usan agentes: la defensa necesita agentes, con supervisión humana.</Note>,
+      },
       render: () => (
         <SlideFrame>
-          <Kicker>7 · Qué han logrado</Kicker>
+          <Kicker>Qué han logrado</Kicker>
           <div className="grid gap-[1.2vw] sm:grid-cols-2">
             {[
               ["10 000+", "vulnerabilidades graves encontradas en 1 mes (Glasswing)"],
@@ -326,10 +371,6 @@ export const fase1Deck: Deck = {
             ))}
           </div>
           <Footnote>Datos de los fabricantes: leer con cautela.</Footnote>
-          <Callout label="Idea clave">
-            <ShieldCheckIcon className="mr-2 inline size-[1.1em] text-cyan-400" />
-            Los atacantes también usan agentes: la defensa necesita agentes, con supervisión humana.
-          </Callout>
         </SlideFrame>
       ),
     },
@@ -348,26 +389,7 @@ export const fase1Deck: Deck = {
     {
       title: "Gracias",
       fullBleed: true,
-      render: () => (
-        <LampContainer className="h-full min-h-0 rounded-none">
-          <motion.h1
-            initial={{ opacity: 0.5, y: 100 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3, duration: 0.8, ease: "easeInOut" }}
-            className="mt-8 bg-gradient-to-br from-slate-300 to-slate-500 bg-clip-text py-4 text-center text-4xl font-medium tracking-tight text-transparent md:text-8xl"
-          >
-            ¡Gracias!
-          </motion.h1>
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 1.1, duration: 0.8 }}
-            className="text-center text-[clamp(1.1rem,1.9vw,2rem)] text-slate-400"
-          >
-            Delegar con inteligencia y evaluar con rigor.
-          </motion.p>
-        </LampContainer>
-      ),
+      render: () => <ClosingSlide title="¡Gracias!" subtitle="Delegar con inteligencia y evaluar con rigor." />,
     },
   ],
 };

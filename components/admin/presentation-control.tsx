@@ -12,6 +12,8 @@ import {
   MessageSquareQuoteIcon,
   MonitorIcon,
   MonitorPlayIcon,
+  PanelRightCloseIcon,
+  PanelRightOpenIcon,
   StickyNoteIcon,
   UnlockIcon,
   UsersIcon,
@@ -220,6 +222,27 @@ export function PresentationControl({ code }: { code: string }) {
         </Card>
 
         <div className="flex flex-col gap-4">
+          {/* Panel lateral de la diapositiva (definición, analogía…) */}
+          {slide.sidePanel && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Panel lateral</CardTitle>
+                <CardDescription>Se muestra a un costado de la diapositiva en la pantalla proyectada.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button
+                  className="h-10 w-full justify-start"
+                  variant={state.showSidePanel ? "default" : "secondary"}
+                  disabled={ended}
+                  onClick={() => set({ showSidePanel: !state.showSidePanel })}
+                >
+                  {state.showSidePanel ? <PanelRightCloseIcon /> : <PanelRightOpenIcon />}
+                  {state.showSidePanel ? "Ocultar" : "Mostrar"} {slide.sidePanel.label}
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Controles de la votación */}
           <Card>
             <CardHeader>
@@ -288,6 +311,7 @@ export function PresentationControl({ code }: { code: string }) {
                 >
                   <span className="w-5 font-mono text-muted-foreground">{i + 1}</span>
                   <span className="line-clamp-1 flex-1">{s.title}</span>
+                  {s.sidePanel && <PanelRightOpenIcon className="size-4 text-muted-foreground" />}
                   {s.questionIndex !== undefined && <VoteIcon className="size-4 text-accent" />}
                 </button>
               ))}

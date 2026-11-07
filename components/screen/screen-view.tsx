@@ -56,10 +56,6 @@ export function ScreenView({ code }: { code: string }) {
     );
   }
 
-  const joinHost = JOIN_HOST ?? window.location.host;
-  const slide = deck.slides[slideIndex];
-  const progress = ((slideIndex + 1) / deck.slides.length) * 100;
-
   return (
     <SlideStage
       deck={deck}

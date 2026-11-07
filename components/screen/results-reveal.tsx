@@ -1,6 +1,6 @@
 "use client";
 
-import { TrophyIcon, UsersIcon } from "lucide-react";
+import { TrophyIcon } from "lucide-react";
 import { motion } from "motion/react";
 import { AnimatedNumber } from "@/components/shared/animated-number";
 import { BackgroundGradient } from "@/components/ui/background-gradient";
@@ -15,7 +15,7 @@ const BAR_COLORS = ["bg-chart-1", "bg-chart-2", "bg-chart-3", "bg-chart-4", "bg-
 // Revelado animado al cerrar una votación: ganador, barras y frases resumen.
 // Secuencia: encabezado → ganador (0.4 s) → barras (0.9 s) → frases (1.8 s+).
 export function ResultsReveal({ results, kicker }: { results: QuestionResults; kicker: string }) {
-  const { winners, lines, total } = getInsights(results);
+  const { winners, lines } = getInsights(results);
   const options = results.options ?? [];
   const winnerValues = new Set(winners.map((w) => w.value));
   const tie = winners.length > 1;
@@ -23,7 +23,7 @@ export function ResultsReveal({ results, kicker }: { results: QuestionResults; k
   return (
     <SlideFrame className="gap-[3vh]">
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col gap-[1vh]">
-        <Kicker>{`${kicker} · Resultados`}</Kicker>
+        <Kicker>{kicker}</Kicker>
         <h1 className="max-w-[40ch] text-[clamp(1.4rem,2.6vw,2.8rem)] leading-tight font-semibold text-muted-foreground">
           {results.text}
         </h1>
@@ -50,7 +50,7 @@ export function ResultsReveal({ results, kicker }: { results: QuestionResults; k
                 speed={2}
                 className="pointer-events-none absolute -inset-[15%] z-0"
               />
-              <BackgroundGradient containerClassName="relative z-10 rounded-3xl p-[3px]" className="relative overflow-hidden rounded-[22px] bg-neutral-950/90 p-[2.2vw]">
+              <BackgroundGradient containerClassName="relative z-10 rounded-3xl p-[3px]" className="relative overflow-hidden rounded-[21px] bg-neutral-950/90 p-[2.2vw]">
               {/* Pulso de luz al aparecer */}
               <motion.span
                 className="pointer-events-none absolute inset-0 rounded-3xl ring-4 ring-accent"
@@ -58,7 +58,7 @@ export function ResultsReveal({ results, kicker }: { results: QuestionResults; k
                 animate={{ opacity: 0, scale: 1.15 }}
                 transition={{ delay: 0.6, duration: 1.2, ease: "easeOut" }}
               />
-              <p className="flex items-center gap-2 text-[clamp(0.9rem,1.3vw,1.4rem)] font-semibold tracking-[0.15em] text-accent uppercase">
+              <p className="flex items-center gap-2 text-[clamp(0.9rem,1.3vw,1.4rem)] font-semibold text-accent">
                 <TrophyIcon className="size-[1.2em]" /> {tie ? "Empate" : "Más votada"}
               </p>
               <p className="mt-[1vh] text-[clamp(1.6rem,3vw,3.4rem)] leading-tight font-bold">
@@ -79,18 +79,6 @@ export function ResultsReveal({ results, kicker }: { results: QuestionResults; k
             </motion.p>
           )}
 
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.8 }}
-            className="flex items-center gap-3 text-[clamp(1.1rem,1.8vw,2rem)]"
-          >
-            <UsersIcon className="size-[1.2em] text-muted-foreground" />
-            <span className="font-bold tabular-nums">
-              <AnimatedNumber value={total} delay={0.8} />
-            </span>
-            <span className="text-muted-foreground">{total === 1 ? "voto" : "votos"}</span>
-          </motion.p>
         </div>
 
         {/* Barras */}

@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  ChevronDownIcon,
   ClipboardListIcon,
   KeyRoundIcon,
   Loader2Icon,
@@ -33,7 +34,9 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { useCreatePresentation, usePresentations } from "@/hooks/api/use-presentations";
 import { useSurveys } from "@/hooks/api/use-surveys";
 import { ADMIN_KEY_HEADER, ApiError, api } from "@/lib/api/client";
-import type { Presentation } from "@/lib/types/api";
+import type { Presentation, Survey } from "@/lib/types/api";
+import { completoDeck } from "@/components/screen/decks/completo";
+import { cn } from "@/lib/utils";
 import { useAdminStore } from "@/stores/admin-store";
 
 const isActive = (p: Presentation) => p.isActive !== false;
@@ -162,71 +165,119 @@ function ActivePresentationBanner() {
 function SurveysSection() {
   const { data, isLoading, error } = useSurveys();
   const presentations = usePresentations();
-  const createPresentation = useCreatePresentation();
   // Solo una presentación activa a la vez (el backend también lo valida).
   const active = presentations.data?.find(isActive);
+  const [showPractice, setShowPractice] = useState(false);
+
+  // La presentación completa va visible; las fases sueltas, solo para practicar.
+  const main = data?.filter((s) => s.title === completoDeck.surveyTitle) ?? [];
+  const practice = (data?.filter((s) => s.title !== completoDeck.surveyTitle) ?? []).sort((a, b) =>
+    a.title.localeCompare(b.title, "es", { numeric: true }),
+  );
 
   return (
     <section className="flex flex-col gap-3">
       <h2 className="flex items-center gap-2 text-lg font-semibold">
-        <ClipboardListIcon className="size-5 text-muted-foreground" /> Encuestas
+        <ClipboardListIcon className="size-5 text-muted-foreground" /> Presentación
       </h2>
       {error && <ErrorAlert message={error.message} />}
-      <div className="grid gap-4 sm:grid-cols-2">
-        {isLoading &&
-          [0, 1].map((i) => <Skeleton key={i} className="h-40 rounded-xl" />)}
-        {data?.map((s) => (
-          <Card key={s._id}>
-            <CardHeader>
-              <CardTitle>{s.title}</CardTitle>
-              {s.description && <CardDescription>{s.description}</CardDescription>}
-              <CardAction>
-                <Badge variant="secondary">{s.questions.length} preguntas</Badge>
-              </CardAction>
-            </CardHeader>
-            <CardContent>
-              <ol className="flex flex-col gap-1 text-sm text-muted-foreground">
-                {s.questions.map((q, i) => (
-                  <li key={q._id} className="line-clamp-1">
-                    <span className="mr-2 font-mono text-xs">{i + 1}.</span>
-                    {q.text}
-                  </li>
-                ))}
-              </ol>
-            </CardContent>
-            <CardFooter>
-              <Tooltip>
-                <TooltipTrigger render={<span className="w-full" />}>
-                  <Button
-                    className="w-full"
-                    disabled={createPresentation.isPending || !!active}
-                    onClick={() =>
-                      createPresentation.mutate(
-                        { title: s.title, surveyId: s._id },
-                        {
-                          onSuccess: (p) => toast.success(`Presentación creada: ${p.code}`),
-                          onError: (e) => toast.error(e.message),
-                        },
-                      )
-                    }
-                  >
-                    <PlusIcon /> Crear presentación
-                  </Button>
-                </TooltipTrigger>
-                {active && (
-                  <TooltipContent>Termina {active.code} para crear otra</TooltipContent>
-                )}
-              </Tooltip>
-            </CardFooter>
-          </Card>
-        ))}
-      </div>
-      {data?.length === 0 && (
+      {isLoading && <Skeleton className="h-40 rounded-xl" />}
+      {main.map((s) => (
+        <SurveyCard key={s._id} survey={s} active={active} />
+      ))}
+      {data && main.length === 0 && (
         <p className="text-sm text-muted-foreground">
-          No hay encuestas. Cárgalas con <code className="font-mono">npm run seed</code> en el backend.
+          No está la encuesta “{completoDeck.surveyTitle}”. Cárgala con{" "}
+          <code className="font-mono">node scripts/seed-surveys.mjs seed/seminario-completo.json</code> en el backend.
         </p>
       )}
+
+      {practice.length > 0 && (
+        <div className="flex flex-col gap-3">
+          <Button
+            variant="ghost"
+            className="w-fit text-muted-foreground"
+            onClick={() => setShowPractice((v) => !v)}
+            aria-expanded={showPractice}
+          >
+            <ChevronDownIcon className={cn("transition-transform", showPractice && "rotate-180")} />
+            Practicar por fase ({practice.length})
+          </Button>
+          {showPractice && (
+            <>
+              <p className="text-sm text-muted-foreground">
+                Para ensayar una fase sola. Recuerda terminarla antes de crear la presentación completa.
+              </p>
+              <div className="grid gap-4 sm:grid-cols-2">
+                {practice.map((s) => (
+                  <SurveyCard key={s._id} survey={s} active={active} compact />
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      )}
     </section>
+  );
+}
+
+function SurveyCard({
+  survey: s,
+  active,
+  compact,
+}: {
+  survey: Survey;
+  active: Presentation | undefined;
+  compact?: boolean;
+}) {
+  const createPresentation = useCreatePresentation();
+  return (
+    <Card className={cn(compact && "bg-card/50")}>
+      <CardHeader>
+        <CardTitle>{s.title}</CardTitle>
+        {s.description && !compact && <CardDescription>{s.description}</CardDescription>}
+        <CardAction>
+          <Badge variant="secondary">
+            {s.questions.length} {s.questions.length === 1 ? "pregunta" : "preguntas"}
+          </Badge>
+        </CardAction>
+      </CardHeader>
+      {!compact && (
+        <CardContent>
+          <ol className="flex flex-col gap-1 text-sm text-muted-foreground">
+            {s.questions.map((q, i) => (
+              <li key={q._id} className="line-clamp-1">
+                <span className="mr-2 font-mono text-xs">{i + 1}.</span>
+                {q.text}
+              </li>
+            ))}
+          </ol>
+        </CardContent>
+      )}
+      <CardFooter>
+        <Tooltip>
+          <TooltipTrigger render={<span className="w-full" />}>
+            <Button
+              className="w-full"
+              variant={compact ? "secondary" : "default"}
+              disabled={createPresentation.isPending || !!active}
+              onClick={() =>
+                createPresentation.mutate(
+                  { title: s.title, surveyId: s._id },
+                  {
+                    onSuccess: (p) => toast.success(`Presentación creada: ${p.code}`),
+                    onError: (e) => toast.error(e.message),
+                  },
+                )
+              }
+            >
+              <PlusIcon /> {compact ? "Practicar" : "Crear presentación"}
+            </Button>
+          </TooltipTrigger>
+          {active && <TooltipContent>Termina {active.code} para crear otra</TooltipContent>}
+        </Tooltip>
+      </CardFooter>
+    </Card>
   );
 }
 

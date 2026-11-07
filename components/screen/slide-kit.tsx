@@ -20,7 +20,7 @@ export function SlideFrame({ children, className }: { children: ReactNode; class
 // Etiqueta de sección con efecto de texto "descifrándose".
 export function Kicker({ children }: { children: string }) {
   return (
-    <p className="font-mono text-[clamp(0.9rem,1.3vw,1.35rem)] font-medium tracking-[0.25em] uppercase">
+    <p className="font-mono text-[clamp(1rem,1.5vw,1.6rem)] font-medium">
       <EncryptedText
         text={children}
         revealDelayMs={35}
@@ -64,7 +64,7 @@ export function Callout({
     <BackgroundGradient containerClassName="rounded-3xl p-[2px]" className={cn("rounded-[22px] bg-neutral-950 px-[2.2vw] py-[2vh]", className)}>
       <div className="text-[clamp(1.1rem,1.8vw,1.9rem)] leading-snug text-neutral-100">
         {label && (
-          <span className="mb-1 block text-[0.6em] font-semibold tracking-[0.2em] text-cyan-400 uppercase">{label}</span>
+          <span className="mb-1 block text-[0.7em] font-semibold text-cyan-400">{label}</span>
         )}
         {children}
       </div>
@@ -89,8 +89,8 @@ export function Tile({
   const body = (
     <div
       className={cn(
-        "flex h-full flex-col gap-[1vh] rounded-2xl border border-white/10 bg-gradient-to-b from-white/[0.07] to-white/[0.02] p-[1.6vw] backdrop-blur",
-        highlight && "rounded-[14px] border-transparent bg-neutral-950",
+        "flex h-full flex-col gap-[1vh] rounded-3xl border border-white/10 bg-gradient-to-b from-white/[0.07] to-white/[0.02] p-[1.6vw] backdrop-blur",
+        highlight && "rounded-[22px] border-0 bg-neutral-950",
         className,
       )}
     >
@@ -104,11 +104,21 @@ export function Tile({
     </div>
   );
   return highlight ? (
-    <BackgroundGradient containerClassName="h-full rounded-2xl p-[2px]" className="h-full">
+    <BackgroundGradient containerClassName="h-full rounded-3xl p-[2px]" className="h-full rounded-[22px]">
       {body}
     </BackgroundGradient>
   ) : (
     body
+  );
+}
+
+// Nota discreta para el panel lateral: sin borde animado ni resplandor.
+export function Note({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="border-l border-white/15 pl-[1.4vw]">
+      <p className="mb-[0.6vh] text-[clamp(0.8rem,1.1vw,1.15rem)] text-neutral-500">{label}</p>
+      <div className="text-[clamp(1rem,1.45vw,1.6rem)] leading-snug text-neutral-300">{children}</div>
+    </div>
   );
 }
 

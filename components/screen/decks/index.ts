@@ -4,13 +4,18 @@ import {
   type Survey,
   type UpdateStateInput,
 } from "@/lib/types/api";
+import { completoDeck } from "./completo";
 import { fase1Deck } from "./fase-1";
+import { fase2Deck } from "./fase-2";
+import { fase3Deck } from "./fase-3";
+import { fase4Deck } from "./fase-4";
 import { genericDeck } from "./generic";
 import type { Deck } from "./types";
 
 export type { Deck, Slide, SlideContext } from "./types";
 
-const DECKS: Deck[] = [fase1Deck];
+// DECKS[0] es la presentación completa; las fases sueltas siguen disponibles.
+export const DECKS: Deck[] = [completoDeck, fase1Deck, fase2Deck, fase3Deck, fase4Deck];
 
 // Deck de la encuesta; si no hay uno escrito a mano, se arma uno automático
 // con una diapositiva por pregunta.
@@ -33,6 +38,7 @@ export function slideState(deck: Deck, survey: Survey, index: number): UpdateSta
       screenView: ScreenView.QUESTION,
       acceptingResponses: true,
       showResultsToAudience: false,
+      showSidePanel: false,
     };
   }
   return {
@@ -40,5 +46,6 @@ export function slideState(deck: Deck, survey: Survey, index: number): UpdateSta
     audienceView: AudienceView.WAITING,
     acceptingResponses: false,
     showResultsToAudience: false,
+    showSidePanel: false,
   };
 }

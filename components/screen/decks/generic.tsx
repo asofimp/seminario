@@ -23,7 +23,7 @@ export function genericDeck(survey: Survey): Deck {
         title: `Votación ${i + 1}`,
         questionIndex: i,
         render: (ctx: Parameters<Deck["slides"][number]["render"]>[0]) => (
-          <VoteSlide ctx={ctx} questionIndex={i} kicker={`Pregunta ${i + 1}`} />
+          <VoteSlide ctx={ctx} questionIndex={i} kicker={survey.title} />
         ),
       })),
       {

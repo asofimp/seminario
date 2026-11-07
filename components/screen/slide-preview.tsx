@@ -9,46 +9,21 @@ import {
   type Question,
   type QuestionResults,
 } from "@/lib/types/api";
-import { fase1Deck } from "./decks/fase-1";
+import { DECKS } from "./decks";
 import { SlideStage } from "./slide-stage";
 
-// Preguntas y votos de ejemplo (mismas preguntas que seed/fase-1-agentes-ia.json).
-const QUESTIONS: Question[] = [
-  ["¿Has usado alguna herramienta de IA?", ["Sí, a diario", "Sí, de vez en cuando", "Nunca"], [14, 9, 2]],
-  ["¿Has usado un agente de IA?", ["Sí", "No", "No estoy seguro"], [6, 8, 11]],
-  [
-    "Su empresa ya tiene un agente de IA de ciberseguridad. ¿Cuánta autonomía le darían?",
-    ["Que solo recomiende y yo apruebo", "Que actúe dentro de límites y yo vigile", "Que decida y ejecute solo", "Ninguna: todavía no confío"],
-    [7, 12, 2, 4],
-  ],
-].map(([text, labels], i) => ({
-  _id: `preview-q${i}`,
-  text: text as string,
-  type: QuestionType.SINGLE,
-  options: (labels as string[]).map((label, j) => ({ value: String.fromCharCode(97 + j), label })),
-}));
-const COUNTS = [[14, 9, 2], [6, 8, 11], [7, 12, 2, 4]];
-
-function sampleResults(qi: number): QuestionResults {
-  const q = QUESTIONS[qi];
-  const total = COUNTS[qi].reduce((a, b) => a + b, 0);
-  return {
-    questionId: q._id,
-    text: q.text,
-    type: q.type,
-    totalResponses: total,
-    options: q.options.map((o, j) => ({
-      ...o,
-      count: COUNTS[qi][j],
-      percentage: (COUNTS[qi][j] / total) * 100,
-    })),
-  };
-}
-
-export function SlidePreview({ slideIndex, voteState }: { slideIndex: number; voteState: "open" | "chart" | "closed" }) {
-  const deck = fase1Deck;
-  const index = Math.min(Math.max(slideIndex, 0), deck.slides.length - 1);
-  const qi = deck.slides[index].questionIndex;
+// Vista previa de un deck con las preguntas y votos de ejemplo que trae cada fase.
+export function SlidePreview({
+  phase,
+  slideIndex,
+  voteState,
+  panel,
+}: {
+  phase: number;
+  slideIndex: number;
+  voteState: "open" | "chart" | "closed";
+  panel: boolean;
+}) {
   // window solo existe en el cliente: en el servidor el host queda vacío.
   const host = useSyncExternalStore(
     () => () => {},
@@ -59,13 +34,43 @@ export function SlidePreview({ slideIndex, voteState }: { slideIndex: number; vo
   // entre servidor y navegador (igual que la pantalla en vivo, que espera al socket).
   if (!host) return null;
 
+  // fase=0 (o sin fase): presentación completa; fase=1..4: esa fase sola.
+  const deck = DECKS[Math.min(Math.max(phase, 0), DECKS.length - 1)];
+  const sample = deck.preview ?? [];
+  const questions: Question[] = sample.map((q, i) => ({
+    _id: `preview-q${i}`,
+    text: q.text,
+    type: QuestionType.SINGLE,
+    options: q.options.map((label, j) => ({ value: String.fromCharCode(97 + j), label })),
+  }));
+  const resultsFor = (qi: number): QuestionResults => {
+    const counts = sample[qi].counts;
+    const total = counts.reduce((a, b) => a + b, 0);
+    return {
+      questionId: questions[qi]._id,
+      text: questions[qi].text,
+      type: QuestionType.SINGLE,
+      totalResponses: total,
+      options: questions[qi].options.map((o, j) => ({
+        ...o,
+        count: counts[j],
+        percentage: total ? (counts[j] / total) * 100 : 0,
+      })),
+    };
+  };
+
+  const index = Math.min(Math.max(slideIndex, 0), deck.slides.length - 1);
+  const qi = deck.slides[index].questionIndex;
+  const hasQuestion = qi !== undefined && qi < questions.length;
+
   const state: PresentationState = {
     audienceView: AudienceView.QUESTION,
     screenView: voteState === "chart" ? ScreenView.RESULTS : ScreenView.QUESTION,
-    currentQuestionId: qi !== undefined ? QUESTIONS[qi]._id : null,
+    currentQuestionId: hasQuestion ? questions[qi]._id : null,
     acceptingResponses: voteState !== "closed",
     showResultsToAudience: false,
     slideIndex: index,
+    showSidePanel: panel,
   };
 
   return (
@@ -75,9 +80,9 @@ export function SlidePreview({ slideIndex, voteState }: { slideIndex: number; vo
       ctx={{
         code: "DEMO42",
         joinHost: host,
-        questions: QUESTIONS,
+        questions,
         state,
-        results: qi !== undefined ? sampleResults(qi) : null,
+        results: hasQuestion ? resultsFor(qi) : null,
       }}
     />
   );
