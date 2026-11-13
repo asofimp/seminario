@@ -66,6 +66,7 @@ export function ScreenView({ code }: { code: string }) {
         questions: live.snapshot.survey.questions,
         state: live.state,
         results: live.results,
+        qa: live.qa,
       }}
       showFullscreenHint={!adminKey}
     />

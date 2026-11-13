@@ -45,6 +45,7 @@ const AGENDA = [
 export const fase1Deck: Deck = {
   id: "fase-1",
   surveyTitle: "Fase 1 · Agentes de IA y su aplicación",
+  agenda: { title: "Agentes de IA y su aplicación", items: AGENDA },
   preview: [
     { text: "¿Has usado alguna herramienta de IA?", options: ["Sí, a diario", "Sí, de vez en cuando", "Nunca"], counts: [14, 9, 2] },
     { text: "¿Has usado un agente de IA?", options: ["Sí", "No", "No estoy seguro"], counts: [6, 8, 11] },
@@ -72,6 +73,7 @@ export const fase1Deck: Deck = {
     // ---------- Agenda ----------
     {
       title: "Agenda",
+      role: "agenda",
       render: () => (
         <SlideFrame>
           <Kicker>Agenda</Kicker>
@@ -388,6 +390,7 @@ export const fase1Deck: Deck = {
     // ---------- Cierre ----------
     {
       title: "Gracias",
+      role: "closing",
       fullBleed: true,
       render: () => <ClosingSlide title="¡Gracias!" subtitle="Delegar con inteligencia y evaluar con rigor." />,
     },

@@ -1,0 +1,263 @@
+"use client";
+
+import {
+  BarChart3Icon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  LockIcon,
+  PanelRightCloseIcon,
+  PanelRightOpenIcon,
+  TrophyIcon,
+  UnlockIcon,
+} from "lucide-react";
+import { useEffect, useMemo, type ReactNode } from "react";
+import { toast } from "sonner";
+import { AdminLogin } from "@/components/admin/admin-dashboard";
+import { getDeck, slideState } from "@/components/screen/decks";
+import { ConnectionDot } from "@/components/shared/connection-dot";
+import { EndPresentationDialog } from "@/components/shared/end-presentation-dialog";
+import { QaModerator } from "@/components/shared/qa-moderator";
+import { getInsights } from "@/components/shared/result-insights";
+import { useLivePresentation } from "@/hooks/realtime/use-live-presentation";
+import { ScreenView, type UpdateStateInput } from "@/lib/types/api";
+import { cn } from "@/lib/utils";
+import { useAdminStore } from "@/stores/admin-store";
+
+// Vibración corta al tocar un botón (si el celular lo permite).
+const buzz = () => {
+  try {
+    navigator.vibrate?.(15);
+  } catch {
+    // sin vibración
+  }
+};
+
+export function PresenterRemote({ code }: { code: string }) {
+  const { adminKey, setAdminKey } = useAdminStore();
+  if (!adminKey) return <AdminLogin onLogin={setAdminKey} />;
+  return <Remote code={code} />;
+}
+
+function Remote({ code }: { code: string }) {
+  const live = useLivePresentation(code, "admin");
+  const survey = live.snapshot?.survey;
+  const deck = useMemo(() => (survey ? getDeck(survey) : null), [survey]);
+  const ended = live.snapshot?.presentation.isActive === false;
+  const slideIndex = Math.min(live.state?.slideIndex ?? 0, (deck?.slides.length ?? 1) - 1);
+
+  const set = (input: UpdateStateInput) => {
+    buzz();
+    live.updateState(input).catch((e: Error) => toast.error(e.message));
+  };
+  const goTo = (i: number) => {
+    if (!deck || !survey || ended || i < 0 || i >= deck.slides.length) return;
+    set(slideState(deck, survey, i));
+  };
+
+  // Mantiene la pantalla del celular encendida mientras se presenta.
+  useEffect(() => {
+    let lock: WakeLockSentinel | null = null;
+    const request = () =>
+      navigator.wakeLock
+        ?.request("screen")
+        .then((l) => (lock = l))
+        .catch(() => {});
+    void request();
+    const onVisible = () => document.visibilityState === "visible" && void request();
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisible);
+      void lock?.release();
+    };
+  }, []);
+
+  // Clickers de presentación / teclado: ←/→, PageUp/PageDown.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.target as HTMLElement).closest("input, textarea, [role=dialog]")) return;
+      if (["ArrowRight", "PageDown"].includes(e.key)) goTo(slideIndex + 1);
+      if (["ArrowLeft", "PageUp"].includes(e.key)) goTo(slideIndex - 1);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  });
+
+  if (!live.snapshot || !live.state || !deck || !survey) {
+    return (
+      <main className="flex flex-1 items-center justify-center p-6 text-center text-lg text-muted-foreground">
+        {live.error ?? "Conectando…"}
+      </main>
+    );
+  }
+
+  const { state } = live;
+  const slide = deck.slides[slideIndex];
+  const nextSlide = deck.slides[slideIndex + 1];
+  const isLast = slideIndex === deck.slides.length - 1;
+  const question = slide.questionIndex !== undefined ? survey.questions[slide.questionIndex] : undefined;
+  const voteActive = !!question && state.currentQuestionId === question._id;
+  const results = voteActive && live.results?.questionId === question._id ? live.results : null;
+  const insights = voteActive && !state.acceptingResponses && results ? getInsights(results) : null;
+  const chartOnScreen = state.screenView === ScreenView.RESULTS;
+
+  return (
+    <main className="flex h-dvh flex-col gap-3 p-3 select-none sm:p-5">
+      {/* Estado */}
+      <header className="flex items-center justify-between text-sm text-muted-foreground">
+        <ConnectionDot status={live.status} />
+        <span className="font-mono tracking-widest">{code}</span>
+        <span className="tabular-nums">
+          {slideIndex + 1} / {deck.slides.length}
+        </span>
+      </header>
+
+      <section className="rounded-2xl border bg-card/60 px-4 py-3">
+        <p className="text-xl leading-tight font-semibold">{slide.title}</p>
+        {nextSlide && <p className="mt-1 truncate text-sm text-muted-foreground">Sigue: {nextSlide.title}</p>}
+        {question && (
+          <p className="mt-2 text-sm">
+            <span className="text-2xl font-bold tabular-nums">{results?.totalResponses ?? 0}</span>{" "}
+            <span className="text-muted-foreground">
+              votos · {voteActive && state.acceptingResponses ? "votación abierta" : "votación cerrada"}
+            </span>
+          </p>
+        )}
+        {insights && insights.winners[0] && (
+          <p className="mt-2 flex items-center gap-2 text-sm text-cyan-300">
+            <TrophyIcon className="size-4 shrink-0" />
+            {insights.lines[0]}
+          </p>
+        )}
+      </section>
+
+      {ended ? (
+        <p className="flex flex-1 items-center justify-center text-center text-xl text-muted-foreground">
+          La presentación terminó.
+        </p>
+      ) : (
+        <>
+          {/* Ronda de preguntas: lista desplazable con botones grandes */}
+          {slide.qa && (
+            <section className="flex min-h-0 flex-1 flex-col gap-2">
+              <p className="text-sm text-muted-foreground">Preguntas del público ({live.qa.length})</p>
+              <div className="min-h-0 flex-1 overflow-y-auto">
+                <QaModerator
+                  code={code}
+                  questions={live.qa}
+                  highlightedId={state.highlightedQuestionId}
+                  onHighlight={(id) => set({ highlightedQuestionId: id })}
+                  large
+                />
+              </div>
+            </section>
+          )}
+
+          {/* Acciones de la diapositiva */}
+          <div className="grid auto-rows-fr gap-3">
+            {question && voteActive && (
+              <BigButton
+                tone={state.acceptingResponses ? "accent" : "muted"}
+                icon={state.acceptingResponses ? <LockIcon /> : <UnlockIcon />}
+                onClick={() => set({ acceptingResponses: !state.acceptingResponses })}
+              >
+                {state.acceptingResponses ? "Cerrar y revelar resultados" : "Reabrir votación"}
+              </BigButton>
+            )}
+            {question && voteActive && state.acceptingResponses && (
+              <BigButton
+                tone={chartOnScreen ? "accent" : "muted"}
+                icon={<BarChart3Icon />}
+                onClick={() => set({ screenView: chartOnScreen ? ScreenView.QUESTION : ScreenView.RESULTS })}
+              >
+                {chartOnScreen ? "Ocultar gráfica" : "Mostrar gráfica en vivo"}
+              </BigButton>
+            )}
+            {slide.sidePanel && (
+              <BigButton
+                tone={state.showSidePanel ? "accent" : "muted"}
+                icon={state.showSidePanel ? <PanelRightCloseIcon /> : <PanelRightOpenIcon />}
+                onClick={() => set({ showSidePanel: !state.showSidePanel })}
+              >
+                {state.showSidePanel ? "Ocultar" : "Mostrar"} {slide.sidePanel.label}
+              </BigButton>
+            )}
+            {isLast && <EndPresentationDialog code={code} size="lg" />}
+          </div>
+
+          {/* Navegación: botones gigantes */}
+          <div
+            className={cn(
+              "grid grid-cols-[1fr_2fr] gap-3",
+              slide.qa ? "h-[18dvh] shrink-0" : "min-h-[38dvh] flex-1",
+            )}
+          >
+            <NavButton disabled={slideIndex === 0} onClick={() => goTo(slideIndex - 1)} label="Anterior">
+              <ChevronLeftIcon />
+            </NavButton>
+            <NavButton primary disabled={isLast} onClick={() => goTo(slideIndex + 1)} label="Siguiente">
+              <ChevronRightIcon />
+            </NavButton>
+          </div>
+        </>
+      )}
+    </main>
+  );
+}
+
+function BigButton({
+  children,
+  icon,
+  tone,
+  onClick,
+}: {
+  children: ReactNode;
+  icon: ReactNode;
+  tone: "accent" | "muted";
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        "flex min-h-16 touch-manipulation items-center justify-center gap-3 rounded-2xl border px-4 text-lg font-semibold transition active:scale-[0.98] [&_svg]:size-6",
+        tone === "accent"
+          ? "border-cyan-400/40 bg-cyan-400/15 text-cyan-100"
+          : "border-white/10 bg-white/[0.05] text-foreground",
+      )}
+    >
+      {icon}
+      {children}
+    </button>
+  );
+}
+
+function NavButton({
+  children,
+  label,
+  primary,
+  disabled,
+  onClick,
+}: {
+  children: ReactNode;
+  label: string;
+  primary?: boolean;
+  disabled?: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      aria-label={label}
+      className={cn(
+        "flex touch-manipulation flex-col items-center justify-center gap-2 rounded-3xl text-xl font-semibold transition active:scale-[0.97] disabled:opacity-30 [&_svg]:size-16",
+        primary
+          ? "bg-gradient-to-br from-violet-500 to-cyan-500 text-white shadow-lg shadow-violet-500/30"
+          : "border border-white/10 bg-white/[0.06] text-foreground",
+      )}
+    >
+      {children}
+      {label}
+    </button>
+  );
+}

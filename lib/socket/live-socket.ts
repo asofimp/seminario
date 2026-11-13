@@ -1,6 +1,8 @@
 import { io, type Socket } from "socket.io-client";
 import { WS_URL } from "@/lib/env";
 import type {
+  AskQuestionInput,
+  AudienceQuestion,
   PresentationSnapshot,
   PresentationState,
   QuestionResults,
@@ -16,6 +18,7 @@ export interface ServerToClientEvents {
   "presentation:state": (state: PresentationState) => void;
   "results:update": (results: QuestionResults) => void;
   "participants:count": (count: number) => void;
+  "qa:update": (questions: AudienceQuestion[]) => void;
   exception: (err: { status: string; message: unknown }) => void;
 }
 
@@ -25,6 +28,7 @@ export interface ClientToServerEvents {
     dto: SubmitResponseInput,
     ack: (res: { ok: true }) => void,
   ) => void;
+  "audience:ask": (dto: AskQuestionInput, ack: (res: { ok: true }) => void) => void;
   "admin:update-state": (
     dto: UpdateStateInput,
     ack: (state: PresentationState) => void,

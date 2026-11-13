@@ -1,6 +1,8 @@
 import { api } from "./client";
 import type {
   ActivePresentation,
+  AskQuestionInput,
+  AudienceQuestion,
   CreatePresentationInput,
   CreateSurveyInput,
   ObjectId,
@@ -79,5 +81,18 @@ export const analyticsApi = {
       .get<QuestionResults>(
         `/presentations/${enc(code)}/results/${enc(questionId)}`,
       )
+      .then((r) => r.data),
+};
+
+// ---------- /presentations/:code/qa (ronda de preguntas) ----------
+export const qaApi = {
+  list: (code: string) =>
+    api.get<AudienceQuestion[]>(`/presentations/${enc(code)}/qa`).then((r) => r.data),
+  ask: (code: string, input: AskQuestionInput) =>
+    api.post<AudienceQuestion>(`/presentations/${enc(code)}/qa`, input).then((r) => r.data),
+  // admin
+  setAnswered: (code: string, id: ObjectId, answered: boolean) =>
+    api
+      .patch<AudienceQuestion>(`/presentations/${enc(code)}/qa/${enc(id)}`, { answered })
       .then((r) => r.data),
 };

@@ -3,6 +3,7 @@
 import { useSyncExternalStore } from "react";
 import {
   AudienceView,
+  type AudienceQuestion,
   QuestionType,
   ScreenView,
   type PresentationState,
@@ -12,13 +13,33 @@ import {
 import { DECKS } from "./decks";
 import { SlideStage } from "./slide-stage";
 
+// Preguntas del público de ejemplo para la ronda de preguntas.
+const SAMPLE_QA: AudienceQuestion[] = [
+  ["Ana", "¿Cómo se prueba que un botón de apagado funciona de verdad?", false],
+  ["Luis", "¿Qué pasa si el agente ignora una orden explícita del usuario?", false],
+  ["María", "¿La ley de Guatemala va a cubrir a los agentes de IA?", true],
+  ["Carlos", "¿Qué herramientas recomiendan para monitorear a un agente?", false],
+  ["Sofía", "¿Quién responde legalmente si un agente borra datos de un cliente?", false],
+].map(([name, text, answered], i) => ({
+  _id: `preview-qa${i}`,
+  presentation: "preview",
+  participantId: `p${i}`,
+  participantName: name as string,
+  text: text as string,
+  answered: answered as boolean,
+  createdAt: new Date(2026, 10, 12, 10, i).toISOString(),
+  updatedAt: new Date(2026, 10, 12, 10, i).toISOString(),
+}));
+
 // Vista previa de un deck con las preguntas y votos de ejemplo que trae cada fase.
 export function SlidePreview({
   phase,
   slideIndex,
   voteState,
   panel,
+  highlight,
 }: {
+  highlight?: boolean;
   phase: number;
   slideIndex: number;
   voteState: "open" | "chart" | "closed";
@@ -71,6 +92,7 @@ export function SlidePreview({
     showResultsToAudience: false,
     slideIndex: index,
     showSidePanel: panel,
+    highlightedQuestionId: highlight ? SAMPLE_QA[1]._id : null,
   };
 
   return (
@@ -83,6 +105,7 @@ export function SlidePreview({
         questions,
         state,
         results: hasQuestion ? resultsFor(qi) : null,
+        qa: SAMPLE_QA,
       }}
     />
   );

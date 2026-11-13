@@ -1,6 +1,16 @@
 "use client";
 
-import { CheckIcon, HourglassIcon, LockIcon, PartyPopperIcon, SendIcon, WifiOffIcon } from "lucide-react";
+import {
+  CheckIcon,
+  HourglassIcon,
+  LockIcon,
+  MessageCircleQuestionIcon,
+  PartyPopperIcon,
+  PencilIcon,
+  SendIcon,
+  UserIcon,
+  WifiOffIcon,
+} from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import Link from "next/link";
 import { useState, type ReactNode } from "react";
@@ -10,6 +20,7 @@ import { ResultBars } from "@/components/shared/result-bars";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { useLivePresentation } from "@/hooks/realtime/use-live-presentation";
@@ -17,21 +28,51 @@ import {
   AudienceView as View,
   QuestionType,
   type AnswerValue,
+  type AudienceQuestion,
   type Question,
 } from "@/lib/types/api";
 import { cn } from "@/lib/utils";
+import { useParticipantStore } from "@/stores/participant-store";
 
 export function AudienceView({ code }: { code: string }) {
   const live = useLivePresentation(code, "audience");
   // Último voto enviado por pregunta (para marcarlo y permitir cambiarlo).
   const [sent, setSent] = useState<Record<string, AnswerValue>>({});
+  const { name, setName } = useParticipantStore();
+  const [editingName, setEditingName] = useState(false);
 
   const header = (
-    <header className="flex items-center justify-between">
+    <header className="flex items-center justify-between gap-3">
       <ConnectionDot status={live.status} />
+      {name && !editingName && (
+        <button
+          onClick={() => setEditingName(true)}
+          className="flex min-w-0 items-center gap-1.5 text-sm text-muted-foreground"
+          aria-label="Cambiar nombre"
+        >
+          <UserIcon className="size-3.5 shrink-0" />
+          <span className="truncate">{name}</span>
+          <PencilIcon className="size-3 shrink-0 opacity-60" />
+        </button>
+      )}
       <Badge variant="outline" className="font-mono">{code}</Badge>
     </header>
   );
+
+  // Antes de participar, el público escribe su nombre.
+  if (!name || editingName) {
+    return (
+      <Shell header={header}>
+        <NameForm
+          initial={name ?? ""}
+          onSave={(n) => {
+            setName(n);
+            setEditingName(false);
+          }}
+        />
+      </Shell>
+    );
+  }
 
   if (!live.snapshot || !live.state) {
     return (
@@ -65,7 +106,10 @@ export function AudienceView({ code }: { code: string }) {
 
   let body: ReactNode;
   let key: string;
-  if (state.audienceView === View.CLOSED) {
+  if (state.audienceView === View.QA) {
+    key = "qa";
+    body = <QaForm questions={live.qa} onAsk={live.ask} />;
+  } else if (state.audienceView === View.CLOSED) {
     key = "closed";
     body = (
       <StateMessage
@@ -345,5 +389,117 @@ function OptionButton({
         )}
       />
     </motion.button>
+  );
+}
+
+function NameForm({ initial, onSave }: { initial: string; onSave: (name: string) => void }) {
+  const [value, setValue] = useState(initial);
+  const trimmed = value.trim();
+  return (
+    <form
+      className="flex flex-1 flex-col justify-center gap-4 py-10"
+      onSubmit={(e) => {
+        e.preventDefault();
+        if (trimmed) onSave(trimmed);
+      }}
+    >
+      <div className="flex size-14 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/30 to-accent/20 text-primary ring-1 ring-primary/30">
+        <UserIcon className="size-7" />
+      </div>
+      <h1 className="text-2xl font-semibold">¿Cómo te llamas?</h1>
+      <p className="text-muted-foreground">Tu nombre aparecerá junto a las preguntas que hagas.</p>
+      <Input
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        placeholder="Tu nombre"
+        maxLength={60}
+        autoFocus
+        autoComplete="given-name"
+        className="h-12 text-lg"
+      />
+      <Button type="submit" size="lg" className="h-12 text-base" disabled={!trimmed}>
+        Continuar
+      </Button>
+    </form>
+  );
+}
+
+// Ronda de preguntas: el participante puede enviar varias preguntas de texto.
+function QaForm({
+  questions,
+  onAsk,
+}: {
+  questions: AudienceQuestion[];
+  onAsk: (text: string) => Promise<void>;
+}) {
+  const participantId = useParticipantStore((s) => s.participantId);
+  const [text, setText] = useState("");
+  const [busy, setBusy] = useState(false);
+  const mine = questions.filter((q) => q.participantId === participantId).reverse();
+  const trimmed = text.trim();
+
+  const send = async () => {
+    if (!trimmed) return;
+    setBusy(true);
+    try {
+      await onAsk(trimmed);
+      setText("");
+      toast.success("Pregunta enviada");
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <section className="flex flex-col gap-4">
+      <div className="flex flex-col gap-2">
+        <span className="text-xs font-medium tracking-wider text-accent">Ronda de preguntas</span>
+        <h1 className="text-2xl leading-snug font-semibold">¿Qué quieres profundizar?</h1>
+        <p className="text-sm text-muted-foreground">Pregunta sobre cualquier parte de la presentación. Puedes enviar varias.</p>
+      </div>
+      <Textarea
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        rows={4}
+        maxLength={300}
+        placeholder="Escribe tu pregunta…"
+        disabled={busy}
+      />
+      <div className="flex items-center justify-between gap-3">
+        <span className="text-xs text-muted-foreground tabular-nums">{text.length}/300</span>
+        <Button size="lg" className="h-12 flex-1 text-base" disabled={busy || !trimmed} onClick={send}>
+          <SendIcon /> Enviar pregunta
+        </Button>
+      </div>
+
+      {mine.length > 0 && (
+        <div className="flex flex-col gap-2 pt-2">
+          <p className="flex items-center gap-2 text-sm text-muted-foreground">
+            <MessageCircleQuestionIcon className="size-4" /> Tus preguntas ({mine.length})
+          </p>
+          <ul className="flex flex-col gap-2">
+            <AnimatePresence initial={false}>
+              {mine.map((q) => (
+                <motion.li
+                  key={q._id}
+                  initial={{ opacity: 0, y: -8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="flex items-start gap-2 rounded-xl border bg-card/80 p-3 text-sm"
+                >
+                  <span className="flex-1">{q.text}</span>
+                  {q.answered && (
+                    <span className="flex shrink-0 items-center gap-1 text-xs text-emerald-400">
+                      <CheckIcon className="size-3.5" /> Respondida
+                    </span>
+                  )}
+                </motion.li>
+              ))}
+            </AnimatePresence>
+          </ul>
+        </div>
+      )}
+    </section>
   );
 }

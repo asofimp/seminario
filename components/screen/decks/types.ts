@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import type { PresentationState, Question, QuestionResults } from "@/lib/types/api";
+import type { AudienceQuestion, PresentationState, Question, QuestionResults } from "@/lib/types/api";
 
 // Datos en vivo que recibe cada diapositiva al renderizarse.
 export interface SlideContext {
@@ -8,6 +8,8 @@ export interface SlideContext {
   questions: Question[];
   state: PresentationState;
   results: QuestionResults | null;
+  // Preguntas del público (ronda de preguntas).
+  qa: AudienceQuestion[];
 }
 
 export interface Slide {
@@ -27,6 +29,13 @@ export interface Slide {
   };
   // Ocupa toda la pantalla, sin el margen de las demás diapositivas (ej. portada).
   fullBleed?: boolean;
+  // Papel especial en la presentación completa: "agenda" se reemplaza por la
+  // agenda de todas las fases y "closing" (cierre de una fase) se omite.
+  role?: "agenda" | "closing";
+  // Ronda de preguntas: los celulares muestran el formulario para preguntar.
+  qa?: boolean;
+  // Última diapositiva: los celulares muestran "¡Gracias por participar!".
+  endsPresentation?: boolean;
   render: (ctx: SlideContext) => ReactNode;
 }
 
@@ -35,6 +44,8 @@ export interface Deck {
   // Se elige el deck cuya encuesta tenga este título.
   surveyTitle: string;
   slides: Slide[];
+  // Tema de la fase y sus secciones, para la agenda de la presentación completa.
+  agenda?: { title: string; items: string[] };
   // Preguntas y votos de ejemplo para /screen/preview (mismas que el seed).
   preview?: { text: string; options: string[]; counts: number[] }[];
 }

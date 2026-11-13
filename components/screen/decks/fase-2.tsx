@@ -26,6 +26,16 @@ const TOPIC = "Incidentes con IA";
 export const fase2Deck: Deck = {
   id: "fase-2",
   surveyTitle: "Fase 2 · Incidentes con agentes de IA",
+  agenda: {
+    title: "Incidentes con agentes de IA",
+    items: [
+      "Tres tipos de incidentes",
+      "Caso principal: OpenAI, Hugging Face y Astra",
+      "No fue un caso aislado",
+      "Cinco patrones y sus controles",
+      "Cuatro lecciones",
+    ],
+  },
   preview: [
     {
       text: "Si hoy un agente de IA trabajara en su organización, ¿sabrían qué permisos tiene, quién es su responsable y cómo detenerlo?",
@@ -283,6 +293,7 @@ export const fase2Deck: Deck = {
     // ---------- Cierre ----------
     {
       title: "Gracias",
+      role: "closing",
       fullBleed: true,
       notes: "«Muchas gracias.» [Abrir espacio para preguntas.]",
       render: () => (

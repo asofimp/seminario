@@ -12,6 +12,7 @@ import {
   MessageSquareQuoteIcon,
   MonitorIcon,
   MonitorPlayIcon,
+  SmartphoneIcon,
   PanelRightCloseIcon,
   PanelRightOpenIcon,
   StickyNoteIcon,
@@ -25,6 +26,7 @@ import { toast } from "sonner";
 import { getDeck, slideState } from "@/components/screen/decks";
 import { ConnectionDot } from "@/components/shared/connection-dot";
 import { EndPresentationDialog } from "@/components/shared/end-presentation-dialog";
+import { QaModerator } from "@/components/shared/qa-moderator";
 import { ResultBars } from "@/components/shared/result-bars";
 import { getInsights } from "@/components/shared/result-insights";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -130,6 +132,9 @@ export function PresentationControl({ code }: { code: string }) {
             <Button nativeButton={false} render={<a href={`/screen/${code}`} target="_blank" />}>
               <MonitorPlayIcon /> Abrir pantalla
             </Button>
+            <Button variant="outline" nativeButton={false} render={<a href={`/remote/${code}`} target="_blank" />}>
+              <SmartphoneIcon /> Control remoto
+            </Button>
             <Button variant="outline" nativeButton={false} render={<a href={`/p/${code}`} target="_blank" />}>
               <ExternalLinkIcon /> Vista público
             </Button>
@@ -222,6 +227,24 @@ export function PresentationControl({ code }: { code: string }) {
         </Card>
 
         <div className="flex flex-col gap-4">
+          {/* Ronda de preguntas */}
+          {slide.qa && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Preguntas del público ({live.qa.length})</CardTitle>
+                <CardDescription>Ponlas en pantalla y márcalas como respondidas.</CardDescription>
+              </CardHeader>
+              <CardContent className="max-h-[480px] overflow-y-auto">
+                <QaModerator
+                  code={code}
+                  questions={live.qa}
+                  highlightedId={state.highlightedQuestionId}
+                  onHighlight={(id) => set({ highlightedQuestionId: id })}
+                />
+              </CardContent>
+            </Card>
+          )}
+
           {/* Panel lateral de la diapositiva (definición, analogía…) */}
           {slide.sidePanel && (
             <Card>

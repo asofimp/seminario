@@ -33,6 +33,18 @@ const TOPIC = "Concientización";
 export const fase4Deck: Deck = {
   id: "fase-4",
   surveyTitle: "Fase 4 · Concientización sobre agentes de IA",
+  agenda: {
+    title: "Concientización sobre agentes de IA",
+    items: [
+      "Un agente es un empleado digital",
+      "Riesgos: lo que lee y lo que pegamos",
+      "Riesgos: permisos y engaños",
+      "La trifecta letal",
+      "Señales de alerta",
+      "Qué hacer según tu perfil",
+      "¿Mito o realidad?",
+    ],
+  },
   preview: [
     { text: "¿Has pegado algo del trabajo o de la universidad en una IA?", options: ["Sí", "No"], counts: [21, 4] },
     { text: "¿Verificarías a tu jefe en una videollamada?", options: ["Sí", "No", "Depende"], counts: [6, 9, 10] },
@@ -322,6 +334,7 @@ export const fase4Deck: Deck = {
     {
       title: "Cierre: no hace falta una IA malvada",
       duration: "9:30 – 10:00",
+      role: "closing",
       fullBleed: true,
       notes:
         "Respuestas preparadas — ¿No usar agentes? Sí usarlos, pero con poca autonomía y aprobación humana en lo irreversible. · ¿Ley en Guatemala? No hay ley de IA ni de protección de datos. · ¿Se puede evitar la inyección? No por completo; se mitiga. · ¿Quién responde? La organización que despliega el agente.",

@@ -26,7 +26,7 @@ export function CoverSlide({ ctx, children }: { ctx: SlideContext; children: Rea
 }
 
 // Cierre con la lámpara (Aceternity).
-export function ClosingSlide({ title, subtitle }: { title: string; subtitle?: string }) {
+export function ClosingSlide({ title, subtitle }: { title: string; subtitle?: ReactNode }) {
   return (
     <LampContainer className="h-full min-h-0 rounded-none">
       <motion.h1
@@ -38,14 +38,14 @@ export function ClosingSlide({ title, subtitle }: { title: string; subtitle?: st
         {title}
       </motion.h1>
       {subtitle && (
-        <motion.p
+        <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 1.1, duration: 0.8 }}
           className="text-center text-[clamp(1.1rem,1.9vw,2rem)] text-slate-400"
         >
           {subtitle}
-        </motion.p>
+        </motion.div>
       )}
     </LampContainer>
   );
@@ -93,5 +93,35 @@ export function ListRow({
       <span className="text-[clamp(0.95rem,1.35vw,1.5rem)] leading-snug text-neutral-400">{detail}</span>
       <span className="text-right text-[clamp(0.85rem,1.2vw,1.3rem)] whitespace-nowrap text-neutral-500">{aside}</span>
     </motion.div>
+  );
+}
+
+// Agenda de la presentación completa: una sola lista numerada con los temas
+// de toda la presentación (sin separar por fase).
+export function AgendaSlide({ phases }: { phases: { title: string; items: string[] }[] }) {
+  return (
+    <div className="relative z-10 mx-auto flex h-full w-full max-w-[1400px] flex-col justify-center gap-[3vh]">
+      <p className="font-mono text-[clamp(1rem,1.5vw,1.6rem)] font-medium text-cyan-400">Agenda</p>
+      <h1 className="text-[clamp(2rem,4.2vw,4.5rem)] leading-[1.08] font-bold tracking-tight">Lo que veremos hoy</h1>
+      <ol className="flex flex-col gap-[1.4vh]">
+        {phases.map((topic, i) => (
+          <motion.li
+            key={topic.title}
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.15 + i * 0.12 }}
+            className="grid grid-cols-[auto_1fr] items-baseline gap-x-[1.6vw] rounded-2xl border border-white/10 bg-gradient-to-b from-white/[0.07] to-white/[0.02] px-[1.8vw] py-[1.8vh]"
+          >
+            <span className="font-mono text-[clamp(1.2rem,2vw,2.2rem)] font-bold text-cyan-400">
+              {String(i + 1).padStart(2, "0")}
+            </span>
+            <span className="text-[clamp(1.25rem,2.1vw,2.3rem)] leading-tight font-semibold">{topic.title}</span>
+            <span className="col-start-2 mt-[0.6vh] text-[clamp(0.85rem,1.2vw,1.35rem)] leading-snug text-neutral-400">
+              {topic.items.join(" · ")}
+            </span>
+          </motion.li>
+        ))}
+      </ol>
+    </div>
   );
 }

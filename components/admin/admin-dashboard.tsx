@@ -7,6 +7,7 @@ import {
   Loader2Icon,
   LogOutIcon,
   MonitorPlayIcon,
+  SmartphoneIcon,
   PlayIcon,
   PlusIcon,
   RadioIcon,
@@ -64,7 +65,7 @@ export function AdminDashboard() {
   );
 }
 
-function AdminLogin({ onLogin }: { onLogin: (key: string) => void }) {
+export function AdminLogin({ onLogin }: { onLogin: (key: string) => void }) {
   const [keyInput, setKeyInput] = useState("");
   const [checking, setChecking] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -154,6 +155,9 @@ function ActivePresentationBanner() {
           </Button>
           <Button variant="outline" nativeButton={false} render={<a href={`/screen/${active.code}`} target="_blank" />}>
             <MonitorPlayIcon /> Pantalla
+          </Button>
+          <Button variant="outline" nativeButton={false} render={<a href={`/remote/${active.code}`} target="_blank" />}>
+            <SmartphoneIcon /> Control remoto
           </Button>
           <EndPresentationDialog code={active.code} size="default" />
         </div>

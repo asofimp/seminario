@@ -5,6 +5,9 @@
 // Cada fase sigue escrita en su propio archivo con índices de pregunta locales (0, 1, …);
 // aquí se desplazan para que apunten a su lugar en la encuesta combinada.
 
+import { createElement } from "react";
+import { QaSlide } from "../qa-slide";
+import { AgendaSlide, ClosingSlide } from "../slide-blocks";
 import { fase1Deck } from "./fase-1";
 import { fase2Deck } from "./fase-2";
 import { fase3Deck } from "./fase-3";
@@ -28,15 +31,50 @@ function withOffset(slide: Slide, offset: number, phase: number): Slide {
   };
 }
 
+// Agenda global de la presentación (reemplaza la agenda de la fase 1).
+const agendaSlide: Slide = {
+  title: "Agenda",
+  notes: "Recorrer los cuatro temas: agentes de IA, incidentes, regulación y concientización.",
+  render: () => createElement(AgendaSlide, { phases: PHASES.flatMap((d) => (d.agenda ? [d.agenda] : [])) }),
+};
+
+// Ronda de preguntas sobre toda la presentación (antes del cierre).
+const qaSlide: Slide = {
+  title: "Ronda de preguntas",
+  qa: true,
+  notes:
+    "El público escribe preguntas desde el celular (puede mandar varias). Destaca una para mostrarla en grande y márcala como respondida al terminar. Respuestas preparadas — ¿No usar agentes? Sí usarlos, pero con poca autonomía y aprobación humana en lo irreversible. · ¿Ley en Guatemala? No hay ley de IA ni de protección de datos. · ¿Se puede evitar la inyección? No por completo; se mitiga. · ¿Quién responde? La organización que despliega el agente.",
+  render: (ctx) => createElement(QaSlide, { ctx }),
+};
+
+// Único cierre de toda la presentación (los cierres de cada fase se omiten).
+const finalSlide: Slide = {
+  title: "Cierre · ¡Gracias!",
+  fullBleed: true,
+  endsPresentation: true,
+  notes:
+    "Cierre de todo el seminario: los celulares ya muestran “¡Gracias por participar!”. Cuando termines, pulsa “Terminar” en el panel.",
+  render: () =>
+    createElement(ClosingSlide, {
+      title: "¡Gracias!",
+      subtitle: "No hace falta una IA malvada: basta un objetivo mal planteado y controles débiles.",
+    }),
+};
+
 let offset = 0;
 const slides: Slide[] = [];
 const preview: NonNullable<Deck["preview"]> = [];
 PHASES.forEach((deck, i) => {
-  slides.push(...deck.slides.map((s) => withOffset(s, offset, i + 1)));
+  for (const s of deck.slides) {
+    if (s.role === "closing") continue;
+    slides.push(s.role === "agenda" ? agendaSlide : withOffset(s, offset, i + 1));
+  }
   preview.push(...(deck.preview ?? []));
   // Preguntas que usa la fase = mayor índice de votación + 1.
   offset += Math.max(-1, ...deck.slides.map((sl) => sl.questionIndex ?? -1)) + 1;
 });
+
+slides.push(qaSlide, finalSlide);
 
 export const completoDeck: Deck = {
   id: "completo",

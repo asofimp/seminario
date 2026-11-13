@@ -23,6 +23,7 @@ async function Content({ searchParams }: Pick<PageProps<"/screen/preview">, "sea
       slideIndex={Number.isFinite(slide) ? slide : 0}
       voteState={state}
       panel={sp.panel === "1"}
+      highlight={sp.highlight === "1"}
     />
   );
 }

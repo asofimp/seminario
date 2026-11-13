@@ -26,6 +26,10 @@ const TOPIC = "Regulación de la IA";
 export const fase3Deck: Deck = {
   id: "fase-3",
   surveyTitle: "Fase 3 · Regulación de la IA en la ciberseguridad",
+  agenda: {
+    title: "Regulación de la IA en la ciberseguridad",
+    items: ["Mapa de normas", "AI Act", "El reloj de plazos", "Estados Unidos", "Estándares", "Guatemala", "Conclusión"],
+  },
   preview: [
     {
       text: "Si hoy su agente de IA fallara, ¿podrían dar una alerta en 24 horas, con evidencia?",
@@ -335,6 +339,7 @@ export const fase3Deck: Deck = {
     // ---------- Cierre ----------
     {
       title: "Gracias",
+      role: "closing",
       fullBleed: true,
       notes: "Muchas gracias. Quedo atento a sus preguntas.",
       render: () => (

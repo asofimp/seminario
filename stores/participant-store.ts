@@ -3,6 +3,9 @@ import { persist } from "zustand/middleware";
 
 interface ParticipantState {
   participantId: string | null;
+  // Nombre que escribe el participante al unirse (se muestra en sus preguntas).
+  name: string | null;
+  setName: (name: string) => void;
   // Devuelve el id existente o crea uno nuevo (solo en el navegador).
   ensureParticipantId: () => string;
 }
@@ -13,6 +16,8 @@ export const useParticipantStore = create<ParticipantState>()(
   persist(
     (set, get) => ({
       participantId: null,
+      name: null,
+      setName: (name) => set({ name: name.trim() || null }),
       ensureParticipantId: () => {
         const current = get().participantId;
         if (current) return current;

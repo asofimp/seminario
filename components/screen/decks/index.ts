@@ -39,11 +39,18 @@ export function slideState(deck: Deck, survey: Survey, index: number): UpdateSta
       acceptingResponses: true,
       showResultsToAudience: false,
       showSidePanel: false,
+      highlightedQuestionId: null,
     };
   }
+  const slide = deck.slides[slideIndex];
   return {
     slideIndex,
-    audienceView: AudienceView.WAITING,
+    audienceView: slide.qa
+      ? AudienceView.QA
+      : slide.endsPresentation
+        ? AudienceView.CLOSED
+        : AudienceView.WAITING,
+    highlightedQuestionId: null,
     acceptingResponses: false,
     showResultsToAudience: false,
     showSidePanel: false,

@@ -60,6 +60,8 @@ export enum AudienceView {
   QUESTION = "question",
   RESULTS = "results",
   CLOSED = "closed",
+  // Ronda de preguntas: el público escribe preguntas de texto.
+  QA = "qa",
 }
 
 export enum ScreenView {
@@ -79,6 +81,8 @@ export interface PresentationState {
   slideIndex: number;
   // Panel lateral de la diapositiva actual (lo abre el admin).
   showSidePanel: boolean;
+  // Pregunta del público destacada en la pantalla (ronda de preguntas).
+  highlightedQuestionId: ObjectId | null;
 }
 
 export interface Presentation extends MongoDoc {
@@ -113,6 +117,7 @@ export type AnswerValue = string | string[] | number;
 
 export interface SubmitResponseInput {
   participantId: string;
+  participantName?: string;
   questionId: ObjectId;
   value: AnswerValue;
 }
@@ -122,6 +127,22 @@ export interface ResponseRecord extends MongoDoc {
   questionId: ObjectId;
   participantId: string;
   value: AnswerValue;
+}
+
+// ---------- Ronda de preguntas ----------
+
+export interface AudienceQuestion extends MongoDoc {
+  presentation: ObjectId;
+  participantId: string;
+  participantName: string;
+  text: string;
+  answered: boolean;
+}
+
+export interface AskQuestionInput {
+  participantId: string;
+  participantName: string;
+  text: string;
 }
 
 // ---------- Analytics ----------

@@ -10,6 +10,7 @@ import {
 } from "@/lib/socket/live-socket";
 import type {
   AnswerValue,
+  AudienceQuestion,
   ObjectId,
   PresentationSnapshot,
   PresentationState,
@@ -28,8 +29,11 @@ interface UseLivePresentationResult {
   state: PresentationState | undefined;
   results: QuestionResults | null;
   participants: number;
+  // ronda de preguntas (todos los roles la reciben)
+  qa: AudienceQuestion[];
   // audience
   answer: (questionId: ObjectId, value: AnswerValue) => Promise<void>;
+  ask: (text: string) => Promise<void>;
   // admin
   updateState: (input: UpdateStateInput) => Promise<PresentationState>;
   next: () => Promise<PresentationState>;
@@ -54,6 +58,8 @@ export function useLivePresentation(
   const [error, setError] = useState<string | null>(null);
   const [results, setResults] = useState<QuestionResults | null>(null);
   const [participants, setParticipants] = useState(0);
+  const [qa, setQa] = useState<AudienceQuestion[]>([]);
+  const participantName = useParticipantStore((s) => s.name);
   const [snapshot, setSnapshot] = useState<PresentationSnapshot | undefined>(
     () => qc.getQueryData(snapshotKey),
   );
@@ -99,6 +105,7 @@ export function useLivePresentation(
     });
     socket.on("results:update", setResults);
     socket.on("participants:count", setParticipants);
+    socket.on("qa:update", setQa);
 
     socket.connect();
     return () => {
@@ -120,11 +127,23 @@ export function useLivePresentation(
     async (questionId: ObjectId, value: AnswerValue) => {
       await getSocket().emitWithAck("audience:answer", {
         participantId: ensureParticipantId(),
+        participantName: participantName ?? undefined,
         questionId,
         value,
       });
     },
-    [ensureParticipantId],
+    [ensureParticipantId, participantName],
+  );
+
+  const ask = useCallback(
+    async (text: string) => {
+      await getSocket().emitWithAck("audience:ask", {
+        participantId: ensureParticipantId(),
+        participantName: participantName ?? "Anónimo",
+        text,
+      });
+    },
+    [ensureParticipantId, participantName],
   );
 
   const updateState = useCallback(
@@ -142,7 +161,9 @@ export function useLivePresentation(
     state: snapshot?.presentation.state,
     results,
     participants,
+    qa,
     answer,
+    ask,
     updateState,
     next,
     prev,
