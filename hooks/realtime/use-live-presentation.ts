@@ -47,9 +47,12 @@ const ACK_TIMEOUT_MS = 5_000;
 export function useLivePresentation(
   code: string,
   role: ClientRole,
+  // Clave para el rol de control (por defecto, la del panel /admin).
+  controlKey?: string | null,
 ): UseLivePresentationResult {
   const qc = useQueryClient();
-  const adminKey = useAdminStore((s) => s.adminKey);
+  const storedAdminKey = useAdminStore((s) => s.adminKey);
+  const adminKey = controlKey ?? storedAdminKey;
   const ensureParticipantId = useParticipantStore((s) => s.ensureParticipantId);
   const snapshotKey = queryKeys.presentations.snapshot(code);
 

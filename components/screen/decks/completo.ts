@@ -16,12 +16,16 @@ import type { Deck, Slide, SlideContext } from "./types";
 
 const PHASES = [fase1Deck, fase2Deck, fase3Deck, fase4Deck];
 
+// Quién presenta cada fase (filtro del control remoto).
+const OWNERS: Record<number, string> = { 1: "Keyla", 2: "Fredy", 3: "Jhoan", 4: "Cesar" };
+
 function withOffset(slide: Slide, offset: number, phase: number): Slide {
   // La diapositiva ve solo las preguntas de su fase, empezando en su índice local 0.
   const local = (ctx: SlideContext): SlideContext => ({ ...ctx, questions: ctx.questions.slice(offset) });
   return {
     ...slide,
     title: `F${phase} · ${slide.title}`,
+    phase,
     questionIndex: slide.questionIndex !== undefined ? slide.questionIndex + offset : undefined,
     render: (ctx) => slide.render(local(ctx)),
     sidePanel: slide.sidePanel && {
@@ -33,7 +37,8 @@ function withOffset(slide: Slide, offset: number, phase: number): Slide {
 
 // Agenda global de la presentación (reemplaza la agenda de la fase 1).
 const agendaSlide: Slide = {
-  title: "Agenda",
+  title: "F1 · Agenda",
+  phase: 1,
   notes: "Recorrer los cuatro temas: agentes de IA, incidentes, regulación y concientización.",
   render: () => createElement(AgendaSlide, { phases: PHASES.flatMap((d) => (d.agenda ? [d.agenda] : [])) }),
 };
@@ -81,4 +86,7 @@ export const completoDeck: Deck = {
   surveyTitle: "Ciberseguridad con Inteligencia Artificial",
   slides,
   preview,
+  owners: Object.fromEntries(
+    PHASES.map((d, i) => [i + 1, { name: OWNERS[i + 1], title: d.agenda?.title ?? `Fase ${i + 1}` }]),
+  ),
 };

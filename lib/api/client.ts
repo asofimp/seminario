@@ -1,6 +1,7 @@
 import axios, { AxiosError } from "axios";
 import { API_URL } from "@/lib/env";
 import { useAdminStore } from "@/stores/admin-store";
+import { useRemoteStore } from "@/stores/remote-store";
 import type { ApiErrorBody } from "@/lib/types/api";
 
 export const ADMIN_KEY_HEADER = "x-admin-key";
@@ -13,8 +14,9 @@ export const api = axios.create({
 // Adjunta la admin key (si existe) a todas las peticiones. El backend solo la
 // exige en las rutas protegidas con AdminKeyGuard.
 api.interceptors.request.use((config) => {
-  const adminKey = useAdminStore.getState().adminKey;
-  if (adminKey) config.headers.set(ADMIN_KEY_HEADER, adminKey);
+  // Clave de admin o, si no hay, la del control remoto (presentador).
+  const key = useAdminStore.getState().adminKey ?? useRemoteStore.getState().key;
+  if (key) config.headers.set(ADMIN_KEY_HEADER, key);
   return config;
 });
 

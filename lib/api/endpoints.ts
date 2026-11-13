@@ -1,3 +1,4 @@
+import type { RemoteAccess } from "@/stores/remote-store";
 import { api } from "./client";
 import type {
   ActivePresentation,
@@ -94,5 +95,14 @@ export const qaApi = {
   setAnswered: (code: string, id: ObjectId, answered: boolean) =>
     api
       .patch<AudienceQuestion>(`/presentations/${enc(code)}/qa/${enc(id)}`, { answered })
+      .then((r) => r.data),
+};
+
+// ---------- /auth (control remoto) ----------
+export const authApi = {
+  // Admin (control completo) o presentador de una fase.
+  remote: (key: string) =>
+    api
+      .post<RemoteAccess>("/auth/remote", { key })
       .then((r) => r.data),
 };

@@ -32,6 +32,8 @@ export interface Slide {
   // Papel especial en la presentación completa: "agenda" se reemplaza por la
   // agenda de todas las fases y "closing" (cierre de una fase) se omite.
   role?: "agenda" | "closing";
+  // Fase a la que pertenece (presentación completa). Sin fase = compartida.
+  phase?: number;
   // Ronda de preguntas: los celulares muestran el formulario para preguntar.
   qa?: boolean;
   // Última diapositiva: los celulares muestran "¡Gracias por participar!".
@@ -44,6 +46,9 @@ export interface Deck {
   // Se elige el deck cuya encuesta tenga este título.
   surveyTitle: string;
   slides: Slide[];
+  // Dueños de cada fase (presentación completa): en el control remoto, cada
+  // persona solo puede mover la presentación durante su fase.
+  owners?: Record<number, { name: string; title: string }>;
   // Tema de la fase y sus secciones, para la agenda de la presentación completa.
   agenda?: { title: string; items: string[] };
   // Preguntas y votos de ejemplo para /screen/preview (mismas que el seed).
