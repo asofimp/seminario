@@ -1,4 +1,7 @@
+"use client";
+
 import type { ConnectionStatus } from "@/hooks/realtime/use-live-presentation";
+import { useQuietStatus } from "@/hooks/realtime/use-quiet-status";
 import { cn } from "@/lib/utils";
 
 const LABEL: Record<ConnectionStatus, string> = {
@@ -7,7 +10,9 @@ const LABEL: Record<ConnectionStatus, string> = {
   disconnected: "Sin conexión",
 };
 
-export function ConnectionDot({ status }: { status: ConnectionStatus }) {
+export function ConnectionDot({ status: raw }: { status: ConnectionStatus }) {
+  // Los cortes breves (reconexión automática) no se notan.
+  const status = useQuietStatus(raw, 8000);
   return (
     <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
       <span className="relative flex size-2">

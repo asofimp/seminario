@@ -2,6 +2,8 @@
 
 import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { ADMIN_KEY_HEADER, api } from "@/lib/api/client";
+import { qaApi, responsesApi } from "@/lib/api/endpoints";
 import { queryKeys } from "@/lib/api/query-keys";
 import {
   createLiveSocket,
@@ -12,6 +14,7 @@ import type {
   AnswerValue,
   AudienceQuestion,
   ObjectId,
+  Presentation,
   PresentationSnapshot,
   PresentationState,
   QuestionResults,
@@ -82,22 +85,59 @@ export function useLivePresentation(
       setSnapshot(next);
     };
 
+    // ---- Reconexión automática ----
+    // Socket.IO reintenta solo los cortes de red, pero NO cuando el servidor
+    // cierra la conexión (reinicio, Render despertando, error temporal). En ese
+    // caso reintentamos nosotros, salvo errores definitivos (clave o código).
+    let permanent = false;
+    let retryTimer: ReturnType<typeof setTimeout> | undefined;
+    let retryDelay = 1000;
+    // Nunca corta un intento en curso (eso provoca "WebSocket is closed before
+    // the connection is established"): solo conecta si no hay ninguno activo.
+    const reconnect = (delay = 0) => {
+      if (permanent || socket.connected || socket.active) return;
+      clearTimeout(retryTimer);
+      retryTimer = setTimeout(() => {
+        if (permanent || socket.connected || socket.active) return;
+        socket.connect();
+      }, delay);
+    };
+
     socket.on("connect", () => {
       setStatus("connected");
       setError(null);
+      retryDelay = 1000;
     });
-    socket.on("disconnect", () => setStatus("disconnected"));
-    socket.on("connect_error", (err) => {
+    socket.on("disconnect", (reason) => {
       setStatus("disconnected");
-      setError(err.message);
+      if (reason === "io server disconnect") {
+        reconnect(retryDelay);
+        retryDelay = Math.min(retryDelay * 2, 8000);
+      }
     });
-    socket.on("exception", (err) =>
-      setError(
-        typeof err.message === "string"
-          ? err.message
-          : JSON.stringify(err.message),
-      ),
-    );
+    socket.on("connect_error", () => {
+      setStatus("disconnected");
+      if (!socket.active) reconnect(retryDelay);
+    });
+    socket.on("exception", (err) => {
+      const message = typeof err.message === "string" ? err.message : JSON.stringify(err.message);
+      // Rechazos de conexión que no se arreglan reintentando.
+      if (/invalid key|missing or invalid|not found/i.test(message)) {
+        permanent = true;
+        setError(message);
+      } else if (!/reintentando/i.test(message)) {
+        setError(message);
+      }
+    });
+
+    // Al volver a la app, recuperar la red o volver de otra pestaña: reconectar ya.
+    const wake = () => {
+      if (document.visibilityState === "visible") reconnect();
+    };
+    document.addEventListener("visibilitychange", wake);
+    window.addEventListener("online", wake);
+    window.addEventListener("pageshow", wake);
+
     socket.on("presentation:snapshot", (s) => writeSnapshot(() => s));
     socket.on("presentation:state", (state) => {
       writeSnapshot((prev) =>
@@ -112,6 +152,10 @@ export function useLivePresentation(
 
     socket.connect();
     return () => {
+      clearTimeout(retryTimer);
+      document.removeEventListener("visibilitychange", wake);
+      window.removeEventListener("online", wake);
+      window.removeEventListener("pageshow", wake);
       socket.removeAllListeners();
       socket.disconnect();
       socketRef.current = null;
@@ -125,34 +169,59 @@ export function useLivePresentation(
     if (!s?.connected) throw new Error("Socket no conectado");
     return s.timeout(ACK_TIMEOUT_MS);
   };
+  // Si el socket se está reconectando, las acciones usan la API REST para no perderse.
+  const connected = () => !!socketRef.current?.connected;
+  const controlHeaders = adminKey ? { [ADMIN_KEY_HEADER]: adminKey } : undefined;
+  // Sin socket no llegan los eventos: aplicamos aquí el estado que devuelve la API.
+  const applyState = (state: PresentationState) => {
+    const next = qc.setQueryData<PresentationSnapshot>(snapshotKey, (prev) =>
+      prev ? { ...prev, presentation: { ...prev.presentation, state } } : prev,
+    );
+    setSnapshot(next);
+    return state;
+  };
 
   const answer = useCallback(
     async (questionId: ObjectId, value: AnswerValue) => {
-      await getSocket().emitWithAck("audience:answer", {
+      const dto = {
         participantId: ensureParticipantId(),
         participantName: participantName ?? undefined,
         questionId,
         value,
-      });
+      };
+      if (connected()) await getSocket().emitWithAck("audience:answer", dto);
+      else await responsesApi.submit(code, dto);
     },
-    [ensureParticipantId, participantName],
+     
+    [code, ensureParticipantId, participantName],
   );
 
   const ask = useCallback(
     async (text: string) => {
-      await getSocket().emitWithAck("audience:ask", {
+      const dto = {
         participantId: ensureParticipantId(),
         participantName: participantName ?? "Anónimo",
         text,
-      });
+      };
+      if (connected()) await getSocket().emitWithAck("audience:ask", dto);
+      else await qaApi.ask(code, dto);
     },
-    [ensureParticipantId, participantName],
+     
+    [code, ensureParticipantId, participantName],
   );
 
   const updateState = useCallback(
-    (input: UpdateStateInput) =>
-      getSocket().emitWithAck("admin:update-state", input),
-    [],
+    async (input: UpdateStateInput) => {
+      if (connected()) return getSocket().emitWithAck("admin:update-state", input);
+      const { data } = await api.patch<Presentation>(
+        `/presentations/${encodeURIComponent(code)}/state`,
+        input,
+        { headers: controlHeaders },
+      );
+      return applyState(data.state);
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [code, adminKey],
   );
   const next = useCallback(() => getSocket().emitWithAck("admin:next"), []);
   const prev = useCallback(() => getSocket().emitWithAck("admin:prev"), []);

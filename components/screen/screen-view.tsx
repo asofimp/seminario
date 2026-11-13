@@ -15,7 +15,10 @@ export function ScreenView({ code }: { code: string }) {
   const adminKey = useAdminStore((s) => s.adminKey);
   const survey = live.snapshot?.survey;
   const deck = useMemo(() => (survey ? getDeck(survey) : null), [survey]);
-  const slideIndex = Math.min(live.state?.slideIndex ?? 0, (deck?.slides.length ?? 1) - 1);
+  const slideIndex = Math.min(
+    live.state?.slideIndex ?? 0,
+    (deck?.slides.length ?? 1) - 1,
+  );
 
   // Atajos: F = pantalla completa; con sesión de admin en este navegador,
   // ←/→ (o espacio / PageUp/PageDown de un presentador) cambian la diapositiva.
@@ -57,18 +60,20 @@ export function ScreenView({ code }: { code: string }) {
   }
 
   return (
-    <SlideStage
-      deck={deck}
-      slideIndex={slideIndex}
-      ctx={{
-        code,
-        joinHost: JOIN_HOST ?? window.location.host,
-        questions: live.snapshot.survey.questions,
-        state: live.state,
-        results: live.results,
-        qa: live.qa,
-      }}
-      showFullscreenHint={!adminKey}
-    />
+    <>
+      <SlideStage
+        deck={deck}
+        slideIndex={slideIndex}
+        ctx={{
+          code,
+          joinHost: JOIN_HOST ?? window.location.host,
+          questions: live.snapshot.survey.questions,
+          state: live.state,
+          results: live.results,
+          qa: live.qa,
+        }}
+        showFullscreenHint={!adminKey}
+      />
+    </>
   );
 }

@@ -25,6 +25,7 @@ import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { getDeck, slideState } from "@/components/screen/decks";
 import { ConnectionDot } from "@/components/shared/connection-dot";
+import { ReconnectBanner } from "@/components/shared/reconnect-banner";
 import { EndPresentationDialog } from "@/components/shared/end-presentation-dialog";
 import { QaModerator } from "@/components/shared/qa-moderator";
 import { ResultBars } from "@/components/shared/result-bars";
@@ -103,6 +104,7 @@ export function PresentationControl({ code }: { code: string }) {
 
   return (
     <main className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-6 sm:px-6">
+      <ReconnectBanner status={live.status} />
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="icon" nativeButton={false} render={<Link href="/admin" />}>

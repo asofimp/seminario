@@ -54,5 +54,12 @@ export function createLiveSocket({
     auth: { code, role, adminKey },
     transports: ["websocket"],
     autoConnect: false,
+    // Reintentos rápidos y sin límite (p. ej. Render despertando o redes móviles).
+    reconnection: true,
+    reconnectionAttempts: Infinity,
+    reconnectionDelay: 500,
+    reconnectionDelayMax: 3000,
+    // Render (plan gratuito) puede tardar en despertar: no cortar el intento antes.
+    timeout: 30000,
   });
 }

@@ -15,6 +15,7 @@ import { useEffect, useMemo, type ReactNode } from "react";
 import { toast } from "sonner";
 import { getDeck, slideState } from "@/components/screen/decks";
 import { ConnectionDot } from "@/components/shared/connection-dot";
+import { ReconnectBanner } from "@/components/shared/reconnect-banner";
 import { EndPresentationDialog } from "@/components/shared/end-presentation-dialog";
 import { QaModerator } from "@/components/shared/qa-moderator";
 import { getInsights } from "@/components/shared/result-insights";
@@ -123,6 +124,7 @@ function Remote({ code, controlKey, access }: { code: string; controlKey: string
 
   return (
     <main className="flex h-dvh flex-col gap-3 p-3 select-none sm:p-5">
+      <ReconnectBanner status={live.status} />
       {/* Estado */}
       <header className="flex items-center justify-between gap-2 text-sm text-muted-foreground">
         <ConnectionDot status={live.status} />
