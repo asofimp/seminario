@@ -28,6 +28,7 @@ export type ConnectionStatus = "connecting" | "connected" | "disconnected";
 interface UseLivePresentationResult {
   status: ConnectionStatus;
   error: string | null;
+  lastProblem: string | null;
   snapshot: PresentationSnapshot | undefined;
   state: PresentationState | undefined;
   results: QuestionResults | null;
@@ -82,6 +83,8 @@ export function useLivePresentation(
   const [results, setResults] = useState<QuestionResults | null>(null);
   const [participants, setParticipants] = useState(0);
   const [qa, setQa] = useState<AudienceQuestion[]>([]);
+  // Último problema de conexión (para mostrarlo si la espera se alarga).
+  const [lastProblem, setLastProblem] = useState<string | null>(null);
   const participantName = useParticipantStore((s) => s.name);
   // Cambiar este número rehace el socket (la pantalla conserva lo que muestra).
   const [connKey, setConnKey] = useState(0);
@@ -133,7 +136,23 @@ export function useLivePresentation(
     socket.io.on("reconnect", (n) => wsLog(tag, `reconectado tras ${n} intento(s)`));
     socket.io.on("error", (err) => wsLog(tag, "error del manager:", err.message));
 
+    // Si el socket conecta pero la presentación no llega en 10 s (servidor
+    // colgado esperando la base), se pide por REST y se rehace la conexión.
+    let snapshotTimer: ReturnType<typeof setTimeout> | undefined;
     socket.on("connect", () => {
+      clearTimeout(snapshotTimer);
+      snapshotTimer = setTimeout(() => {
+        wsLog(tag, "conectado pero sin presentación tras 10 s: pidiéndola por REST y rehaciendo la conexión");
+        presentationsApi
+          .snapshot(code)
+          .then((s) => {
+            loadedOnce = true;
+            writeSnapshot(() => s);
+          })
+          .catch((e: Error) => wsLog(tag, `REST también falló: ${e.message}`));
+        socket.disconnect();
+        reconnect(1000);
+      }, 10000);
       const transport = socket.io.engine?.transport.name;
       wsLog(tag, `conectado id=${socket.id} transporte=${transport}`);
       socket.io.engine?.once("upgrade", (t) => wsLog(tag, `transporte mejorado a ${t.name}`));
@@ -142,6 +161,7 @@ export function useLivePresentation(
       retryDelay = 1000;
     });
     socket.on("disconnect", (reason, details) => {
+      setLastProblem(`Conexión perdida (${reason})`);
       wsLog(tag, `desconectado motivo=${reason}`, details ?? "");
       setStatus("disconnected");
       if (reason === "io server disconnect") {
@@ -152,6 +172,7 @@ export function useLivePresentation(
     socket.on("connect_error", (err) => {
       const e = err as Error & { description?: unknown; context?: unknown; type?: string };
       wsLog(tag, `error al conectar: ${e.message}`, { type: e.type, description: e.description, context: e.context, active: socket.active });
+      setLastProblem(`No se pudo conectar (${e.message})`);
       setStatus("disconnected");
       if (!socket.active) reconnect(retryDelay);
     });
@@ -177,6 +198,7 @@ export function useLivePresentation(
     window.addEventListener("pageshow", wake);
 
     socket.on("presentation:snapshot", (s) => {
+      clearTimeout(snapshotTimer);
       checkNonce(s.presentation.state.reconnectNonce);
       loadedOnce = true;
       writeSnapshot(() => s);
@@ -217,8 +239,9 @@ export function useLivePresentation(
     // (Cada 8 s; pide solo lo necesario: estado ligero, y resultados o
     // preguntas solo cuando la diapositiva los usa.)
     const watchdog = setInterval(() => {
-      if (socket.connected) return;
-      wsLog(tag, `sin socket: respaldo por REST (activo=${socket.active}, definitivo=${permanent})`);
+      const haveSnapshot = !!qc.getQueryData<PresentationSnapshot>(snapshotKey);
+      if (socket.connected && haveSnapshot) return;
+      wsLog(tag, `${socket.connected ? "conectado sin presentación" : "sin socket"}: respaldo por REST (activo=${socket.active}, definitivo=${permanent})`);
       if (!permanent && !socket.active) socket.connect();
       if (!loadedOnce && permanent) return;
       const current = qc.getQueryData<PresentationSnapshot>(snapshotKey);
@@ -272,6 +295,7 @@ export function useLivePresentation(
     socket.connect();
     return () => {
       clearTimeout(retryTimer);
+      clearTimeout(snapshotTimer);
       clearInterval(watchdog);
       clearTimeout(healthStart);
       clearInterval(health);
@@ -355,6 +379,7 @@ export function useLivePresentation(
   return {
     status,
     error,
+    lastProblem,
     snapshot,
     state: snapshot?.presentation.state,
     results,

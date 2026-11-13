@@ -11,7 +11,6 @@ import type {
   PresentationSnapshot,
   PresentationState,
   QuestionResults,
-  ResponseRecord,
   SubmitResponseInput,
   Survey,
   UpdateStateInput,
@@ -73,7 +72,7 @@ export const presentationsApi = {
 export const responsesApi = {
   submit: (code: string, input: SubmitResponseInput) =>
     api
-      .post<ResponseRecord>(`/presentations/${enc(code)}/responses`, input)
+      .post<{ ok: true }>(`/presentations/${enc(code)}/responses`, input)
       .then((r) => r.data),
 };
 

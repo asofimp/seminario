@@ -1,7 +1,7 @@
 "use client";
 
 import { Loader2Icon } from "lucide-react";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { useLivePresentation } from "@/hooks/realtime/use-live-presentation";
 import { presentationsApi } from "@/lib/api/endpoints";
@@ -48,16 +48,9 @@ export function ScreenView({ code }: { code: string }) {
   }, [adminKey, code, deck, slideIndex, survey]);
 
   if (!live.snapshot || !live.state || !deck) {
-    return (
-      <main className="flex flex-1 items-center justify-center gap-3 text-xl text-muted-foreground">
-        {live.error ?? (
-          <>
-            <Loader2Icon className="animate-spin" /> Conectando…
-          </>
-        )}
-      </main>
-    );
+    return <ScreenLoading error={live.error} problem={live.lastProblem} status={live.status} />;
   }
+
 
   return (
     <>
@@ -75,5 +68,37 @@ export function ScreenView({ code }: { code: string }) {
         showFullscreenHint={!adminKey}
       />
     </>
+  );
+}
+
+// Mientras carga: tras 10 s muestra qué está pasando (sigue reintentando sola).
+function ScreenLoading({
+  error,
+  problem,
+  status,
+}: {
+  error: string | null;
+  problem: string | null;
+  status: string;
+}) {
+  const [slow, setSlow] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => setSlow(true), 10000);
+    return () => clearTimeout(t);
+  }, []);
+  return (
+    <main className="flex flex-1 flex-col items-center justify-center gap-3 p-6 text-center text-xl text-muted-foreground">
+      {error ?? (
+        <span className="flex items-center gap-3">
+          <Loader2Icon className="animate-spin" /> {slow ? "Esperando al servidor…" : "Conectando…"}
+        </span>
+      )}
+      {slow && !error && (
+        <p className="max-w-lg text-sm text-neutral-500">
+          Reintentando sola, no hace falta recargar. Estado: {status}
+          {problem ? ` · ${problem}` : ""}. Más detalle en la consola (F12, líneas “[ws]”).
+        </p>
+      )}
+    </main>
   );
 }
