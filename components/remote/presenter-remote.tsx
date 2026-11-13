@@ -18,6 +18,7 @@ import { ConnectionDot } from "@/components/shared/connection-dot";
 import { EndPresentationDialog } from "@/components/shared/end-presentation-dialog";
 import { QaModerator } from "@/components/shared/qa-moderator";
 import { getInsights } from "@/components/shared/result-insights";
+import { closeAndReveal, liveChart, reopenVote } from "@/components/shared/vote-actions";
 import { useLivePresentation } from "@/hooks/realtime/use-live-presentation";
 import { ScreenView, type UpdateStateInput } from "@/lib/types/api";
 import { cn } from "@/lib/utils";
@@ -207,7 +208,7 @@ function Remote({ code, controlKey, access }: { code: string; controlKey: string
               <BigButton
                 tone={state.acceptingResponses ? "accent" : "muted"}
                 icon={state.acceptingResponses ? <LockIcon /> : <UnlockIcon />}
-                onClick={() => set({ acceptingResponses: !state.acceptingResponses })}
+                onClick={() => set(state.acceptingResponses ? closeAndReveal() : reopenVote())}
               >
                 {state.acceptingResponses ? "Cerrar y revelar resultados" : "Reabrir votación"}
               </BigButton>
@@ -216,7 +217,7 @@ function Remote({ code, controlKey, access }: { code: string; controlKey: string
               <BigButton
                 tone={chartOnScreen ? "accent" : "muted"}
                 icon={<BarChart3Icon />}
-                onClick={() => set({ screenView: chartOnScreen ? ScreenView.QUESTION : ScreenView.RESULTS })}
+                onClick={() => set(liveChart(!chartOnScreen))}
               >
                 {chartOnScreen ? "Ocultar gráfica" : "Mostrar gráfica en vivo"}
               </BigButton>

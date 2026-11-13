@@ -16,10 +16,9 @@ import Link from "next/link";
 import { useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import { ConnectionDot } from "@/components/shared/connection-dot";
-import { ResultBars } from "@/components/shared/result-bars";
+import { AudienceResults } from "./audience-results";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
@@ -30,6 +29,7 @@ import {
   type AnswerValue,
   type AudienceQuestion,
   type Question,
+  type QuestionResults,
 } from "@/lib/types/api";
 import { cn } from "@/lib/utils";
 import { useParticipantStore } from "@/stores/participant-store";
@@ -37,7 +37,8 @@ import { useParticipantStore } from "@/stores/participant-store";
 export function AudienceView({ code }: { code: string }) {
   const live = useLivePresentation(code, "audience");
   // Último voto enviado por pregunta (para marcarlo y permitir cambiarlo).
-  const [sent, setSent] = useState<Record<string, AnswerValue>>({});
+  const sent = useParticipantStore((s) => s.votes);
+  const rememberVote = useParticipantStore((s) => s.rememberVote);
   const { name, setName } = useParticipantStore();
   const [editingName, setEditingName] = useState(false);
 
@@ -101,7 +102,7 @@ export function AudienceView({ code }: { code: string }) {
 
   const submit = async (q: Question, value: AnswerValue) => {
     await live.answer(q._id, value);
-    setSent((s) => ({ ...s, [q._id]: value }));
+    rememberVote(q._id, value);
   };
 
   let body: ReactNode;
@@ -120,17 +121,7 @@ export function AudienceView({ code }: { code: string }) {
     );
   } else if (state.audienceView === View.RESULTS && live.results) {
     key = `results-${live.results.questionId}`;
-    body = (
-      <Card>
-        <CardHeader>
-          <Badge variant="secondary" className="mb-1">Resultados</Badge>
-          <CardTitle className="text-xl leading-snug">{live.results.text}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ResultBars results={live.results} />
-        </CardContent>
-      </Card>
-    );
+    body = <AudienceResults results={live.results} myVote={sent[live.results.questionId]} />;
   } else if (state.audienceView === View.QUESTION && question) {
     key = `q-${question._id}`;
     body = (
@@ -140,6 +131,9 @@ export function AudienceView({ code }: { code: string }) {
         open={state.acceptingResponses}
         sent={sent[question._id]}
         onSubmit={(v) => submit(question, v)}
+        liveResults={
+          state.showResultsToAudience && live.results?.questionId === question._id ? live.results : null
+        }
       />
     );
   } else {
@@ -209,12 +203,15 @@ function QuestionForm({
   open,
   sent,
   onSubmit,
+  liveResults,
 }: {
   question: Question;
   position: string;
   open: boolean;
   sent: AnswerValue | undefined;
   onSubmit: (v: AnswerValue) => Promise<void>;
+  // Gráfica en vivo que habilitó quien presenta (se ve bajo las opciones).
+  liveResults?: QuestionResults | null;
 }) {
   const [multi, setMulti] = useState<string[]>(Array.isArray(sent) ? sent : []);
   const [text, setText] = useState(typeof sent === "string" ? sent : "");
@@ -318,7 +315,7 @@ function QuestionForm({
   return (
     <section className="flex flex-col gap-4">
       <div className="flex flex-col gap-2">
-        <span className="text-xs font-medium tracking-wider text-accent uppercase">{position}</span>
+        <span className="text-xs font-medium text-accent">{position}</span>
         <h1 className="text-2xl leading-snug font-semibold">{question.text}</h1>
         {question.type === QuestionType.MULTIPLE && (
           <p className="text-sm text-muted-foreground">Puedes elegir varias opciones.</p>
@@ -336,6 +333,11 @@ function QuestionForm({
           </motion.p>
         ) : null}
       </AnimatePresence>
+      {liveResults && (
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="pt-2">
+          <AudienceResults results={liveResults} myVote={sent} live />
+        </motion.div>
+      )}
     </section>
   );
 }

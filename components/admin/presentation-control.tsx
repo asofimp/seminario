@@ -28,6 +28,7 @@ import { ConnectionDot } from "@/components/shared/connection-dot";
 import { EndPresentationDialog } from "@/components/shared/end-presentation-dialog";
 import { QaModerator } from "@/components/shared/qa-moderator";
 import { ResultBars } from "@/components/shared/result-bars";
+import { closeAndReveal, liveChart, reopenVote } from "@/components/shared/vote-actions";
 import { getInsights } from "@/components/shared/result-insights";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -279,16 +280,16 @@ export function PresentationControl({ code }: { code: string }) {
                 className="h-10 justify-start"
                 variant={chartOnScreen ? "default" : "secondary"}
                 disabled={ended || !voteActive}
-                onClick={() => set({ screenView: chartOnScreen ? ScreenView.QUESTION : ScreenView.RESULTS })}
+                onClick={() => set(liveChart(!chartOnScreen))}
               >
                 <BarChart3Icon />
-                {chartOnScreen ? "Ocultar gráfica en pantalla" : "Mostrar gráfica en pantalla"}
+                {chartOnScreen ? "Ocultar gráfica en vivo" : "Mostrar gráfica en vivo"}
               </Button>
               <Button
                 variant="secondary"
                 className="h-10 justify-start"
                 disabled={ended || !voteActive}
-                onClick={() => set({ acceptingResponses: !state.acceptingResponses })}
+                onClick={() => set(state.acceptingResponses ? closeAndReveal() : reopenVote())}
               >
                 {state.acceptingResponses ? <LockIcon /> : <UnlockIcon />}
                 {state.acceptingResponses ? "Cerrar votación y revelar resultados" : "Reabrir votación"}
