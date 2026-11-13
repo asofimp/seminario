@@ -7,6 +7,7 @@
 
 import { createElement } from "react";
 import { QaSlide } from "../qa-slide";
+import { JoinSlide } from "../join-slide";
 import { AgendaSlide, ClosingSlide, CoverSlide } from "../slide-blocks";
 import { fase1Deck } from "./fase-1";
 import { fase2Deck } from "./fase-2";
@@ -51,6 +52,15 @@ const coverSlide: Slide = {
   ),
 };
 
+// Cómo unirse: QR, dirección y código.
+const joinSlide: Slide = {
+  title: "Intro · Únete (QR)",
+  phase: 1,
+  notes:
+    "Dar un momento para que todos entren: escanear el QR con la cámara del celular o escribir la dirección y el código. Al entrar les pedirá su nombre. Avanzar cuando la mayoría esté dentro (el número de conectados se ve en el panel).",
+  render: (ctx) => <JoinSlide ctx={ctx} />,
+};
+
 // Agenda global: los cuatro temas con quién presenta cada uno.
 const agendaSlide: Slide = {
   title: "Intro · Agenda",
@@ -89,7 +99,7 @@ const finalSlide: Slide = {
 let offset = 0;
 const slides: Slide[] = [];
 const preview: NonNullable<Deck["preview"]> = [];
-slides.push(coverSlide, agendaSlide);
+slides.push(coverSlide, joinSlide, agendaSlide);
 PHASES.forEach((deck, i) => {
   for (const s of deck.slides) {
     // La agenda es global (va en la intro) y cada fase no tiene cierre propio.
