@@ -75,29 +75,6 @@ export const fase1Deck: Deck = {
       ),
     },
 
-    // ---------- Agenda ----------
-    {
-      title: "Agenda",
-      role: "agenda",
-      render: () => (
-        <SlideFrame>
-          <Kicker>Agenda</Kicker>
-          <Title>Lo que veremos hoy</Title>
-          <ol className="grid gap-[1.6vh] sm:grid-cols-2">
-            {AGENDA.map((item, i) => (
-              <li
-                key={item}
-                className="flex items-center gap-[1.2vw] rounded-2xl border border-white/10 bg-white/[0.04] px-[1.4vw] py-[1.6vh] text-[clamp(1.2rem,2vw,2.2rem)] backdrop-blur"
-              >
-                <span className="font-mono text-[0.9em] font-bold text-cyan-400">{String(i + 1).padStart(2, "0")}</span>
-                {item}
-              </li>
-            ))}
-          </ol>
-        </SlideFrame>
-      ),
-    },
-
     // ---------- Votación inicial ----------
     {
       title: "Votación: ¿has usado IA?",
