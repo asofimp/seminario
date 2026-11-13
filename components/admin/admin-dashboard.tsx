@@ -7,6 +7,7 @@ import {
   Loader2Icon,
   LogOutIcon,
   MonitorPlayIcon,
+  QrCodeIcon,
   SmartphoneIcon,
   UserIcon,
   PlayIcon,
@@ -136,35 +137,60 @@ export function AdminLogin({ onLogin }: { onLogin: (key: string) => void }) {
   );
 }
 
+// Arriba: la presentación principal en curso y todas las prácticas activas.
 function ActivePresentationBanner() {
   const { data } = usePresentations();
-  const active = data?.find(isMainActive);
-  if (!active) return null;
+  const main = data?.find(isMainActive);
+  const practices = data?.filter((p) => isActive(p) && p.practice) ?? [];
+  if (!main && practices.length === 0) return null;
 
   return (
-    <Card className="border-primary/40 bg-gradient-to-r from-primary/15 to-accent/10">
-      <CardContent className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-4">
-          <span className="flex size-11 items-center justify-center rounded-xl bg-primary/20 text-primary">
+    <section className="flex flex-col gap-3">
+      {main && <ActiveCard presentation={main} />}
+      {practices.map((p) => (
+        <ActiveCard key={p._id} presentation={p} practice />
+      ))}
+    </section>
+  );
+}
+
+function ActiveCard({ presentation: p, practice }: { presentation: Presentation; practice?: boolean }) {
+  return (
+    <Card
+      className={cn(
+        practice ? "border-white/10 bg-card/60" : "border-primary/40 bg-gradient-to-r from-primary/15 to-accent/10",
+      )}
+    >
+      <CardContent className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex min-w-0 items-center gap-4">
+          <span
+            className={cn(
+              "flex size-11 shrink-0 items-center justify-center rounded-xl",
+              practice ? "bg-white/5 text-muted-foreground" : "bg-primary/20 text-primary",
+            )}
+          >
             <RadioIcon className="animate-pulse" />
           </span>
-          <div>
-            <p className="text-xs font-medium tracking-wider text-accent uppercase">En curso</p>
-            <p className="font-semibold">{active.title}</p>
-            <p className="font-mono text-2xl tracking-widest">{active.code}</p>
+          <div className="min-w-0">
+            <p className="text-xs font-medium text-accent">{practice ? "Práctica en curso" : "En curso"}</p>
+            <p className="truncate font-semibold">{p.title}</p>
+            <p className={cn("font-mono tracking-widest", practice ? "text-lg" : "text-2xl")}>{p.code}</p>
           </div>
         </div>
-        <div className="flex gap-2">
-          <Button nativeButton={false} render={<Link href={`/admin/presentations/${active.code}`} />}>
+        <div className="flex flex-wrap gap-2">
+          <Button nativeButton={false} render={<Link href={`/admin/presentations/${p.code}`} />}>
             <PlayIcon /> Controlar
           </Button>
-          <Button variant="outline" nativeButton={false} render={<a href={`/screen/${active.code}`} target="_blank" />}>
+          <Button variant="outline" nativeButton={false} render={<a href={`/screen/${p.code}`} target="_blank" />}>
             <MonitorPlayIcon /> Pantalla
           </Button>
-          <Button variant="outline" nativeButton={false} render={<a href={`/remote/${active.code}`} target="_blank" />}>
+          <Button variant="outline" nativeButton={false} render={<a href={`/remote/${p.code}`} target="_blank" />}>
             <SmartphoneIcon /> Control remoto
           </Button>
-          <EndPresentationDialog code={active.code} size="default" />
+          <Button variant="outline" nativeButton={false} render={<a href={`/qr/${p.code}`} target="_blank" />}>
+            <QrCodeIcon /> QR
+          </Button>
+          <EndPresentationDialog code={p.code} size="default" />
         </div>
       </CardContent>
     </Card>

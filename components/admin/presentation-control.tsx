@@ -12,6 +12,7 @@ import {
   MessageSquareQuoteIcon,
   MonitorIcon,
   MonitorPlayIcon,
+  QrCodeIcon,
   SmartphoneIcon,
   PanelRightCloseIcon,
   PanelRightOpenIcon,
@@ -137,6 +138,9 @@ export function PresentationControl({ code }: { code: string }) {
             </Button>
             <Button variant="outline" nativeButton={false} render={<a href={`/remote/${code}`} target="_blank" />}>
               <SmartphoneIcon /> Control remoto
+            </Button>
+            <Button variant="outline" nativeButton={false} render={<a href={`/qr/${code}`} target="_blank" />}>
+              <QrCodeIcon /> Pantalla QR
             </Button>
             <Button variant="outline" nativeButton={false} render={<a href={`/p/${code}`} target="_blank" />}>
               <ExternalLinkIcon /> Vista público

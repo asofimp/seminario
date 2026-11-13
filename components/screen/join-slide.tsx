@@ -5,11 +5,16 @@ import { motion } from "motion/react";
 import type { SlideContext } from "./decks/types";
 import { Kicker, SlideFrame } from "./slide-kit";
 
-// Diapositiva para unirse: QR que abre la presentación directo en el celular,
-// más la dirección y el código para entrar a mano.
+// Diapositiva para unirse (dentro de la presentación).
 export function JoinSlide({ ctx }: { ctx: SlideContext }) {
+  return <JoinPanel code={ctx.code} joinHost={ctx.joinHost} />;
+}
+
+// QR que abre la presentación directo en el celular, más la dirección y el
+// código para entrar a mano. Se usa en la diapositiva y en la pantalla /qr.
+export function JoinPanel({ code, joinHost }: { code: string; joinHost: string }) {
   const protocol = typeof window !== "undefined" ? window.location.protocol : "https:";
-  const url = `${protocol}//${ctx.joinHost}/p/${ctx.code}`;
+  const url = `${protocol}//${joinHost}/p/${code}`;
 
   return (
     <SlideFrame>
@@ -37,7 +42,7 @@ export function JoinSlide({ ctx }: { ctx: SlideContext }) {
           </h1>
           <div className="flex flex-col gap-[1.2vh] text-[clamp(1.1rem,1.8vw,2rem)] text-neutral-400">
             <p>o entra a</p>
-            <p className="font-semibold break-all text-neutral-100">{ctx.joinHost}</p>
+            <p className="font-semibold break-all text-neutral-100">{joinHost}</p>
             <p>y escribe el código</p>
           </div>
           <motion.p
@@ -46,7 +51,7 @@ export function JoinSlide({ ctx }: { ctx: SlideContext }) {
             transition={{ delay: 0.3 }}
             className="w-fit rounded-3xl border border-white/15 bg-neutral-950/80 px-[2vw] py-[1.2vh] font-mono text-[clamp(3rem,7vw,8rem)] leading-none font-bold tracking-[0.2em] text-gradient"
           >
-            {ctx.code}
+            {code}
           </motion.p>
         </div>
       </div>
