@@ -44,7 +44,7 @@ const coverSlide: Slide = {
   phase: 1,
   fullBleed: true,
   notes:
-    "Bienvenida al seminario. Presentar el tema general —ciberseguridad con inteligencia artificial— y al equipo: Keyla, Fredy, Jhoan y Cesar. Pedir que entren con el código de la pantalla para votar desde el celular.",
+    "Bienvenida al seminario. Presentar el tema general —ciberseguridad con inteligencia artificial— y al equipo: Keyla, Fredy, Jhoan y Cesar.",
   render: (ctx) => (
     <CoverSlide ctx={ctx}>
       Ciberseguridad con <br /> Inteligencia Artificial
@@ -57,7 +57,7 @@ const joinSlide: Slide = {
   title: "Intro · Únete (QR)",
   phase: 1,
   notes:
-    "Dar un momento para que todos entren: escanear el QR con la cámara del celular o escribir la dirección y el código. Al entrar les pedirá su nombre. Avanzar cuando la mayoría esté dentro (el número de conectados se ve en el panel).",
+    "Primera pantalla, mientras llega el público: que escaneen el QR con la cámara del celular o escriban la dirección y el código. Al entrar les pedirá su nombre. Avanzar a la portada cuando la mayoría esté dentro (el número de conectados se ve en el panel).",
   render: (ctx) => <JoinSlide ctx={ctx} />,
 };
 
@@ -99,7 +99,7 @@ const finalSlide: Slide = {
 let offset = 0;
 const slides: Slide[] = [];
 const preview: NonNullable<Deck["preview"]> = [];
-slides.push(coverSlide, joinSlide, agendaSlide);
+slides.push(joinSlide, coverSlide, agendaSlide);
 PHASES.forEach((deck, i) => {
   for (const s of deck.slides) {
     // La agenda es global (va en la intro) y cada fase no tiene cierre propio.
