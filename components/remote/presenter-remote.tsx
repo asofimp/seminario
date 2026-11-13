@@ -15,6 +15,7 @@ import { useEffect, useMemo, type ReactNode } from "react";
 import { toast } from "sonner";
 import { getDeck, slideState } from "@/components/screen/decks";
 import { ConnectionDot } from "@/components/shared/connection-dot";
+import { ReconnectAllButton } from "@/components/shared/reconnect-all-button";
 import { ReconnectBanner } from "@/components/shared/reconnect-banner";
 import { EndPresentationDialog } from "@/components/shared/end-presentation-dialog";
 import { QaModerator } from "@/components/shared/qa-moderator";
@@ -127,7 +128,10 @@ function Remote({ code, controlKey, access }: { code: string; controlKey: string
       <ReconnectBanner status={live.status} />
       {/* Estado */}
       <header className="flex items-center justify-between gap-2 text-sm text-muted-foreground">
-        <ConnectionDot status={live.status} />
+        <span className="flex items-center gap-2">
+          <ConnectionDot status={live.status} />
+          {!ended && <ReconnectAllButton onReconnect={live.reconnectAll} compact className="px-2" />}
+        </span>
         <button
           onClick={() => {
             if (confirm("¿Salir del control remoto? Tendrás que escribir la clave otra vez.")) logout();

@@ -26,6 +26,7 @@ import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { getDeck, slideState } from "@/components/screen/decks";
 import { ConnectionDot } from "@/components/shared/connection-dot";
+import { ReconnectAllButton } from "@/components/shared/reconnect-all-button";
 import { ReconnectBanner } from "@/components/shared/reconnect-banner";
 import { EndPresentationDialog } from "@/components/shared/end-presentation-dialog";
 import { QaModerator } from "@/components/shared/qa-moderator";
@@ -114,6 +115,7 @@ export function PresentationControl({ code }: { code: string }) {
         </div>
         <div className="flex items-center gap-4">
           <ConnectionDot status={live.status} />
+          {!ended && <ReconnectAllButton onReconnect={live.reconnectAll} />}
           <span className="flex items-center gap-1.5 text-sm">
             <UsersIcon className="size-4 text-muted-foreground" />
             <span className="font-semibold tabular-nums">{live.participants}</span>

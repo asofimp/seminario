@@ -52,7 +52,10 @@ export function createLiveSocket({
 }: LiveSocketOptions): LiveSocket {
   return io(`${WS_URL}/live`, {
     auth: { code, role, adminKey },
-    transports: ["websocket"],
+    // WebSocket primero; si la red lo bloquea (proxies, Wi-Fi de campus),
+    // cae a long-polling por HTTP en vez de quedarse sin conexión.
+    transports: ["websocket", "polling"],
+    tryAllTransports: true,
     autoConnect: false,
     // Reintentos rápidos y sin límite (p. ej. Render despertando o redes móviles).
     reconnection: true,

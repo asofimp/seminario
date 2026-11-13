@@ -3,7 +3,7 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ADMIN_KEY_HEADER, api } from "@/lib/api/client";
-import { qaApi, responsesApi } from "@/lib/api/endpoints";
+import { analyticsApi, presentationsApi, qaApi, responsesApi } from "@/lib/api/endpoints";
 import { queryKeys } from "@/lib/api/query-keys";
 import {
   createLiveSocket,
@@ -39,6 +39,8 @@ interface UseLivePresentationResult {
   ask: (text: string) => Promise<void>;
   // admin
   updateState: (input: UpdateStateInput) => Promise<PresentationState>;
+  // Rehace la conexión de todos los clientes (celulares y pantallas).
+  reconnectAll: () => Promise<PresentationState>;
   next: () => Promise<PresentationState>;
   prev: () => Promise<PresentationState>;
 }
@@ -66,6 +68,10 @@ export function useLivePresentation(
   const [participants, setParticipants] = useState(0);
   const [qa, setQa] = useState<AudienceQuestion[]>([]);
   const participantName = useParticipantStore((s) => s.name);
+  // Cambiar este número rehace el socket (la pantalla conserva lo que muestra).
+  const [connKey, setConnKey] = useState(0);
+  // Último reconnectNonce visto (null = aún no se ha visto ninguno).
+  const nonceRef = useRef<number | null>(null);
   const [snapshot, setSnapshot] = useState<PresentationSnapshot | undefined>(
     () => qc.getQueryData(snapshotKey),
   );
@@ -90,6 +96,9 @@ export function useLivePresentation(
     // cierra la conexión (reinicio, Render despertando, error temporal). En ese
     // caso reintentamos nosotros, salvo errores definitivos (clave o código).
     let permanent = false;
+    // Si ya cargó la presentación una vez, un rechazo posterior es temporal
+    // (reinicio del servidor, base de datos despertando): nunca se rinde.
+    let loadedOnce = !!qc.getQueryData(snapshotKey);
     let retryTimer: ReturnType<typeof setTimeout> | undefined;
     let retryDelay = 1000;
     // Nunca corta un intento en curso (eso provoca "WebSocket is closed before
@@ -122,7 +131,7 @@ export function useLivePresentation(
     socket.on("exception", (err) => {
       const message = typeof err.message === "string" ? err.message : JSON.stringify(err.message);
       // Rechazos de conexión que no se arreglan reintentando.
-      if (/invalid key|missing or invalid|not found/i.test(message)) {
+      if (/invalid key|missing or invalid|not found/i.test(message) && !loadedOnce) {
         permanent = true;
         setError(message);
       } else if (!/reintentando/i.test(message)) {
@@ -138,8 +147,67 @@ export function useLivePresentation(
     window.addEventListener("online", wake);
     window.addEventListener("pageshow", wake);
 
-    socket.on("presentation:snapshot", (s) => writeSnapshot(() => s));
+    socket.on("presentation:snapshot", (s) => {
+      checkNonce(s.presentation.state.reconnectNonce);
+      loadedOnce = true;
+      writeSnapshot(() => s);
+    });
+
+    // Respaldo cada 5 s mientras no hay socket:
+    // 1) si el cliente quedó inactivo sin reintento pendiente, lo despierta;
+    // 2) sigue la presentación por REST (diapositiva, resultados, preguntas),
+    //    así la pantalla nunca se queda congelada aunque el socket tarde.
+    // Revisión de salud cada 15 s con el socket "conectado": si el estado del
+    // servidor no coincide con lo que mostramos, la conexión quedó colgada
+    // (zombi): nos ponemos al día y la rehacemos, sin recargar la página.
+    const health = setInterval(() => {
+      if (!socket.connected || document.visibilityState !== "visible") return;
+      const local = qc.getQueryData<PresentationSnapshot>(snapshotKey)?.presentation.state;
+      presentationsApi
+        .snapshot(code)
+        .then((s) => {
+          const remote = s.presentation.state;
+          if (local && JSON.stringify(remote) !== JSON.stringify(local)) {
+            writeSnapshot(() => s);
+            if ((remote.reconnectNonce ?? 0) !== nonceRef.current) {
+              nonceRef.current = remote.reconnectNonce ?? 0;
+            }
+            setConnKey((k) => k + 1);
+          }
+        })
+        .catch(() => {});
+    }, 15000);
+
+    const watchdog = setInterval(() => {
+      if (socket.connected) return;
+      if (!permanent && !socket.active) socket.connect();
+      if (!loadedOnce && permanent) return;
+      presentationsApi
+        .snapshot(code)
+        .then((s) => {
+          loadedOnce = true;
+          writeSnapshot(() => s);
+          checkNonce(s.presentation.state.reconnectNonce);
+          const qid = s.presentation.state.currentQuestionId;
+          if (qid && (role !== "audience" || s.presentation.state.showResultsToAudience)) {
+            void analyticsApi.question(code, qid).then(setResults).catch(() => {});
+          }
+        })
+        .catch(() => {});
+      void qaApi.list(code).then(setQa).catch(() => {});
+    }, 5000);
+    // Si quien presenta pide "reconectar a todos", rehacemos la conexión.
+    const checkNonce = (nonce: number | undefined) => {
+      const n = nonce ?? 0;
+      if (nonceRef.current === null) nonceRef.current = n;
+      else if (n !== nonceRef.current) {
+        nonceRef.current = n;
+        setConnKey((k) => k + 1);
+      }
+    };
+
     socket.on("presentation:state", (state) => {
+      checkNonce(state.reconnectNonce);
       writeSnapshot((prev) =>
         prev ? { ...prev, presentation: { ...prev.presentation, state } } : prev,
       );
@@ -153,6 +221,8 @@ export function useLivePresentation(
     socket.connect();
     return () => {
       clearTimeout(retryTimer);
+      clearInterval(watchdog);
+      clearInterval(health);
       document.removeEventListener("visibilitychange", wake);
       window.removeEventListener("online", wake);
       window.removeEventListener("pageshow", wake);
@@ -162,7 +232,7 @@ export function useLivePresentation(
     };
     // snapshotKey deriva de code
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [code, role, adminKey, qc]);
+  }, [code, role, adminKey, qc, connKey]);
 
   const getSocket = () => {
     const s = socketRef.current;
@@ -223,6 +293,10 @@ export function useLivePresentation(
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [code, adminKey],
   );
+  const reconnectAll = useCallback(
+    () => updateState({ reconnectNonce: Math.floor(Date.now() / 1000) }),
+    [updateState],
+  );
   const next = useCallback(() => getSocket().emitWithAck("admin:next"), []);
   const prev = useCallback(() => getSocket().emitWithAck("admin:prev"), []);
 
@@ -237,6 +311,7 @@ export function useLivePresentation(
     answer,
     ask,
     updateState,
+    reconnectAll,
     next,
     prev,
   };

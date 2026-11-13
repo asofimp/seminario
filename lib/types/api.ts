@@ -86,6 +86,8 @@ export interface PresentationState {
   showSidePanel: boolean;
   // Pregunta del público destacada en la pantalla (ronda de preguntas).
   highlightedQuestionId: ObjectId | null;
+  // Al cambiar, todos los clientes rehacen su conexión.
+  reconnectNonce?: number;
 }
 
 export interface Presentation extends MongoDoc {
