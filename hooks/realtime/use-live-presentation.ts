@@ -160,49 +160,68 @@ export function useLivePresentation(
     // Revisión de salud cada 15 s con el socket "conectado": si el estado del
     // servidor no coincide con lo que mostramos, la conexión quedó colgada
     // (zombi): nos ponemos al día y la rehacemos, sin recargar la página.
-    const health = setInterval(() => {
+    // (Cada 30 s + desfase al azar para no llegar todos juntos al servidor.)
+    const applyState = (state: PresentationState) =>
+      writeSnapshot((prev) =>
+        prev ? { ...prev, presentation: { ...prev.presentation, state } } : prev,
+      );
+    const healthCheck = () => {
       if (!socket.connected || document.visibilityState !== "visible") return;
       const local = qc.getQueryData<PresentationSnapshot>(snapshotKey)?.presentation.state;
       presentationsApi
-        .snapshot(code)
-        .then((s) => {
-          const remote = s.presentation.state;
+        .state(code)
+        .then(({ state: remote }) => {
           if (local && JSON.stringify(remote) !== JSON.stringify(local)) {
-            writeSnapshot(() => s);
-            if ((remote.reconnectNonce ?? 0) !== nonceRef.current) {
-              nonceRef.current = remote.reconnectNonce ?? 0;
-            }
+            applyState(remote);
+            nonceRef.current = remote.reconnectNonce ?? 0;
             setConnKey((k) => k + 1);
           }
         })
         .catch(() => {});
-    }, 15000);
+    };
+    let health: ReturnType<typeof setInterval> | undefined;
+    const healthStart = setTimeout(() => {
+      health = setInterval(healthCheck, 30000);
+    }, Math.random() * 30000);
 
+    // (Cada 8 s; pide solo lo necesario: estado ligero, y resultados o
+    // preguntas solo cuando la diapositiva los usa.)
     const watchdog = setInterval(() => {
       if (socket.connected) return;
       if (!permanent && !socket.active) socket.connect();
       if (!loadedOnce && permanent) return;
-      presentationsApi
-        .snapshot(code)
-        .then((s) => {
+      const current = qc.getQueryData<PresentationSnapshot>(snapshotKey);
+      const load = current
+        ? presentationsApi.state(code).then(({ state }) => {
+            const changed = JSON.stringify(state) !== JSON.stringify(current.presentation.state);
+            if (changed) applyState(state);
+            return { state, changed };
+          })
+        : presentationsApi.snapshot(code).then((s) => {
+            writeSnapshot(() => s);
+            return { state: s.presentation.state, changed: true };
+          });
+      load
+        .then(({ state, changed }) => {
           loadedOnce = true;
-          writeSnapshot(() => s);
-          checkNonce(s.presentation.state.reconnectNonce);
-          const qid = s.presentation.state.currentQuestionId;
-          if (qid && (role !== "audience" || s.presentation.state.showResultsToAudience)) {
+          checkNonce(state.reconnectNonce);
+          const qid = state.currentQuestionId;
+          if (qid && state.acceptingResponses !== undefined && (role !== "audience" || state.showResultsToAudience)) {
             void analyticsApi.question(code, qid).then(setResults).catch(() => {});
+          }
+          if (changed || state.audienceView === "qa") {
+            void qaApi.list(code).then(setQa).catch(() => {});
           }
         })
         .catch(() => {});
-      void qaApi.list(code).then(setQa).catch(() => {});
-    }, 5000);
+    }, 8000);
     // Si quien presenta pide "reconectar a todos", rehacemos la conexión.
     const checkNonce = (nonce: number | undefined) => {
       const n = nonce ?? 0;
       if (nonceRef.current === null) nonceRef.current = n;
       else if (n !== nonceRef.current) {
         nonceRef.current = n;
-        setConnKey((k) => k + 1);
+        retryTimer = setTimeout(() => setConnKey((k) => k + 1), Math.random() * 4000);
       }
     };
 
@@ -222,6 +241,7 @@ export function useLivePresentation(
     return () => {
       clearTimeout(retryTimer);
       clearInterval(watchdog);
+      clearTimeout(healthStart);
       clearInterval(health);
       document.removeEventListener("visibilitychange", wake);
       window.removeEventListener("online", wake);

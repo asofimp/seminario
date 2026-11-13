@@ -9,6 +9,7 @@ import type {
   ObjectId,
   Presentation,
   PresentationSnapshot,
+  PresentationState,
   QuestionResults,
   ResponseRecord,
   SubmitResponseInput,
@@ -55,6 +56,11 @@ export const presentationsApi = {
       .then((r) => r.data),
 
   // público
+  // Solo el estado (ligero): revisiones de salud de los clientes.
+  state: (code: string) =>
+    api
+      .get<{ state: PresentationState; isActive: boolean }>(`/presentations/${enc(code)}/state`)
+      .then((r) => r.data),
   active: () =>
     api.get<ActivePresentation>("/presentations/active").then((r) => r.data),
   snapshot: (code: string) =>
