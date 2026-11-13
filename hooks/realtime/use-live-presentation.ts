@@ -45,6 +45,21 @@ interface UseLivePresentationResult {
   prev: () => Promise<PresentationState>;
 }
 
+// Logs de diagnóstico de la conexión en la consola del navegador ("[ws] …").
+// Se desactivan con localStorage.setItem("seminario-debug-ws", "0").
+const wsDebug = () => {
+  try {
+    return localStorage.getItem("seminario-debug-ws") !== "0";
+  } catch {
+    return true;
+  }
+};
+const wsLog = (tag: string, ...args: unknown[]) => {
+  if (!wsDebug()) return;
+  const t = new Date().toLocaleTimeString("es", { hour12: false });
+  console.info(`[ws ${t}] ${tag}`, ...args);
+};
+
 const ACK_TIMEOUT_MS = 5_000;
 
 // Conecta al namespace /live con el rol indicado y vuelca los eventos en la
@@ -112,24 +127,37 @@ export function useLivePresentation(
       }, delay);
     };
 
+    const tag = `${role}:${code}#${connKey}`;
+    wsLog(tag, "creando conexión");
+    socket.io.on("reconnect_attempt", (n) => wsLog(tag, `reintento ${n}`));
+    socket.io.on("reconnect", (n) => wsLog(tag, `reconectado tras ${n} intento(s)`));
+    socket.io.on("error", (err) => wsLog(tag, "error del manager:", err.message));
+
     socket.on("connect", () => {
+      const transport = socket.io.engine?.transport.name;
+      wsLog(tag, `conectado id=${socket.id} transporte=${transport}`);
+      socket.io.engine?.once("upgrade", (t) => wsLog(tag, `transporte mejorado a ${t.name}`));
       setStatus("connected");
       setError(null);
       retryDelay = 1000;
     });
-    socket.on("disconnect", (reason) => {
+    socket.on("disconnect", (reason, details) => {
+      wsLog(tag, `desconectado motivo=${reason}`, details ?? "");
       setStatus("disconnected");
       if (reason === "io server disconnect") {
         reconnect(retryDelay);
         retryDelay = Math.min(retryDelay * 2, 8000);
       }
     });
-    socket.on("connect_error", () => {
+    socket.on("connect_error", (err) => {
+      const e = err as Error & { description?: unknown; context?: unknown; type?: string };
+      wsLog(tag, `error al conectar: ${e.message}`, { type: e.type, description: e.description, context: e.context, active: socket.active });
       setStatus("disconnected");
       if (!socket.active) reconnect(retryDelay);
     });
     socket.on("exception", (err) => {
       const message = typeof err.message === "string" ? err.message : JSON.stringify(err.message);
+      wsLog(tag, `excepción del servidor: ${message}`);
       // Rechazos de conexión que no se arreglan reintentando.
       if (/invalid key|missing or invalid|not found/i.test(message) && !loadedOnce) {
         permanent = true;
@@ -140,7 +168,8 @@ export function useLivePresentation(
     });
 
     // Al volver a la app, recuperar la red o volver de otra pestaña: reconectar ya.
-    const wake = () => {
+    const wake = (e: Event) => {
+      if (document.visibilityState === "visible" && !socket.connected) wsLog(tag, `despertar (${e.type}): reconectando`);
       if (document.visibilityState === "visible") reconnect();
     };
     document.addEventListener("visibilitychange", wake);
@@ -172,6 +201,7 @@ export function useLivePresentation(
         .state(code)
         .then(({ state: remote }) => {
           if (local && JSON.stringify(remote) !== JSON.stringify(local)) {
+            wsLog(tag, "revisión de salud: el estado no coincide (conexión zombi), rehaciendo la conexión");
             applyState(remote);
             nonceRef.current = remote.reconnectNonce ?? 0;
             setConnKey((k) => k + 1);
@@ -188,6 +218,7 @@ export function useLivePresentation(
     // preguntas solo cuando la diapositiva los usa.)
     const watchdog = setInterval(() => {
       if (socket.connected) return;
+      wsLog(tag, `sin socket: respaldo por REST (activo=${socket.active}, definitivo=${permanent})`);
       if (!permanent && !socket.active) socket.connect();
       if (!loadedOnce && permanent) return;
       const current = qc.getQueryData<PresentationSnapshot>(snapshotKey);
@@ -220,6 +251,7 @@ export function useLivePresentation(
       const n = nonce ?? 0;
       if (nonceRef.current === null) nonceRef.current = n;
       else if (n !== nonceRef.current) {
+        wsLog(tag, "“reconectar a todos” recibido: rehaciendo la conexión");
         nonceRef.current = n;
         retryTimer = setTimeout(() => setConnKey((k) => k + 1), Math.random() * 4000);
       }
