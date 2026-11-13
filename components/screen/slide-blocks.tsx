@@ -98,7 +98,7 @@ export function ListRow({
 
 // Agenda de la presentación completa: una sola lista numerada con los temas
 // de toda la presentación (sin separar por fase).
-export function AgendaSlide({ phases }: { phases: { title: string; items: string[] }[] }) {
+export function AgendaSlide({ phases }: { phases: { title: string; items: string[]; presenter?: string }[] }) {
   return (
     <div className="relative z-10 mx-auto flex h-full w-full max-w-[1400px] flex-col justify-center gap-[3vh]">
       <p className="font-mono text-[clamp(1rem,1.5vw,1.6rem)] font-medium text-cyan-400">Agenda</p>
@@ -115,7 +115,12 @@ export function AgendaSlide({ phases }: { phases: { title: string; items: string
             <span className="font-mono text-[clamp(1.2rem,2vw,2.2rem)] font-bold text-cyan-400">
               {String(i + 1).padStart(2, "0")}
             </span>
-            <span className="text-[clamp(1.25rem,2.1vw,2.3rem)] leading-tight font-semibold">{topic.title}</span>
+            <span className="flex items-baseline justify-between gap-4">
+              <span className="text-[clamp(1.25rem,2.1vw,2.3rem)] leading-tight font-semibold">{topic.title}</span>
+              {topic.presenter && (
+                <span className="shrink-0 text-[clamp(0.9rem,1.3vw,1.4rem)] text-cyan-300">{topic.presenter}</span>
+              )}
+            </span>
             <span className="col-start-2 mt-[0.6vh] text-[clamp(0.85rem,1.2vw,1.35rem)] leading-snug text-neutral-400">
               {topic.items.join(" · ")}
             </span>

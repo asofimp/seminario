@@ -70,7 +70,7 @@ export const fase1Deck: Deck = {
         "Hoy hablo de agentes de IA y su aplicación, con la ciberseguridad como ejemplo. Meta: que al terminar puedan explicar qué es un agente, qué hace y quién lo construye.",
       render: (ctx) => (
         <CoverSlide ctx={ctx}>
-          Ciberseguridad con <br /> Inteligencia Artificial
+          Agentes con IA
         </CoverSlide>
       ),
     },

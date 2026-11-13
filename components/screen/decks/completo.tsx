@@ -7,7 +7,7 @@
 
 import { createElement } from "react";
 import { QaSlide } from "../qa-slide";
-import { AgendaSlide, ClosingSlide } from "../slide-blocks";
+import { AgendaSlide, ClosingSlide, CoverSlide } from "../slide-blocks";
 import { fase1Deck } from "./fase-1";
 import { fase2Deck } from "./fase-2";
 import { fase3Deck } from "./fase-3";
@@ -35,12 +35,32 @@ function withOffset(slide: Slide, offset: number, phase: number): Slide {
   };
 }
 
-// Agenda global de la presentación (reemplaza la agenda de la fase 1).
-const agendaSlide: Slide = {
-  title: "F1 · Agenda",
+// ---- Intro de toda la presentación (la abre quien presenta la fase 1) ----
+
+// Portada general.
+const coverSlide: Slide = {
+  title: "Intro · Portada",
   phase: 1,
-  notes: "Recorrer los cuatro temas: agentes de IA, incidentes, regulación y concientización.",
-  render: () => createElement(AgendaSlide, { phases: PHASES.flatMap((d) => (d.agenda ? [d.agenda] : [])) }),
+  fullBleed: true,
+  notes:
+    "Bienvenida al seminario. Presentar el tema general —ciberseguridad con inteligencia artificial— y al equipo: Keyla, Fredy, Jhoan y Cesar. Pedir que entren con el código de la pantalla para votar desde el celular.",
+  render: (ctx) => (
+    <CoverSlide ctx={ctx}>
+      Ciberseguridad con <br /> Inteligencia Artificial
+    </CoverSlide>
+  ),
+};
+
+// Agenda global: los cuatro temas con quién presenta cada uno.
+const agendaSlide: Slide = {
+  title: "Intro · Agenda",
+  phase: 1,
+  notes:
+    "Recorrer los cuatro temas y quién presenta cada uno: agentes de IA (Keyla), incidentes (Fredy), regulación (Jhoan) y concientización (Cesar). Al final habrá una ronda de preguntas.",
+  render: () =>
+    createElement(AgendaSlide, {
+      phases: PHASES.flatMap((d, i) => (d.agenda ? [{ ...d.agenda, presenter: OWNERS[i + 1] }] : [])),
+    }),
 };
 
 // Ronda de preguntas sobre toda la presentación (antes del cierre).
@@ -69,10 +89,12 @@ const finalSlide: Slide = {
 let offset = 0;
 const slides: Slide[] = [];
 const preview: NonNullable<Deck["preview"]> = [];
+slides.push(coverSlide, agendaSlide);
 PHASES.forEach((deck, i) => {
   for (const s of deck.slides) {
-    if (s.role === "closing") continue;
-    slides.push(s.role === "agenda" ? agendaSlide : withOffset(s, offset, i + 1));
+    // La agenda es global (va en la intro) y cada fase no tiene cierre propio.
+    if (s.role === "closing" || s.role === "agenda") continue;
+    slides.push(withOffset(s, offset, i + 1));
   }
   preview.push(...(deck.preview ?? []));
   // Preguntas que usa la fase = mayor índice de votación + 1.
