@@ -8,6 +8,7 @@ import {
   LogOutIcon,
   MonitorPlayIcon,
   SmartphoneIcon,
+  UserIcon,
   PlayIcon,
   PlusIcon,
   RadioIcon,
@@ -34,13 +35,17 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useCreatePresentation, usePresentations } from "@/hooks/api/use-presentations";
 import { useSurveys } from "@/hooks/api/use-surveys";
+import { useQuery } from "@tanstack/react-query";
 import { ADMIN_KEY_HEADER, ApiError, api } from "@/lib/api/client";
+import { authApi } from "@/lib/api/endpoints";
 import type { Presentation, Survey } from "@/lib/types/api";
 import { completoDeck } from "@/components/screen/decks/completo";
 import { cn } from "@/lib/utils";
 import { useAdminStore } from "@/stores/admin-store";
 
 const isActive = (p: Presentation) => p.isActive !== false;
+// Presentación principal activa (las prácticas no cuentan para el límite).
+const isMainActive = (p: Presentation) => isActive(p) && !p.practice;
 
 export function AdminDashboard() {
   const { adminKey, setAdminKey } = useAdminStore();
@@ -49,7 +54,7 @@ export function AdminDashboard() {
   return (
     <main className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-6 sm:px-6">
       <header className="flex items-center justify-between">
-        <span />
+        <SignedInAs adminKey={adminKey} />
         <Button variant="ghost" size="sm" onClick={() => setAdminKey(null)}>
           <LogOutIcon /> Cerrar sesión
         </Button>
@@ -93,7 +98,7 @@ export function AdminLogin({ onLogin }: { onLogin: (key: string) => void }) {
       <Card className="w-full max-w-sm backdrop-blur-xl">
         <CardHeader>
           <CardTitle className="text-xl">Panel de administración</CardTitle>
-          <CardDescription>Ingresa la clave para controlar las presentaciones.</CardDescription>
+          <CardDescription>Ingresa tu clave de presentador (o la de admin) para crear y controlar las presentaciones.</CardDescription>
         </CardHeader>
         <CardContent>
           <form
@@ -133,7 +138,7 @@ export function AdminLogin({ onLogin }: { onLogin: (key: string) => void }) {
 
 function ActivePresentationBanner() {
   const { data } = usePresentations();
-  const active = data?.find(isActive);
+  const active = data?.find(isMainActive);
   if (!active) return null;
 
   return (
@@ -170,7 +175,7 @@ function SurveysSection() {
   const { data, isLoading, error } = useSurveys();
   const presentations = usePresentations();
   // Solo una presentación activa a la vez (el backend también lo valida).
-  const active = presentations.data?.find(isActive);
+  const active = presentations.data?.find(isMainActive);
   const [showPractice, setShowPractice] = useState(false);
 
   // La presentación completa va visible; las fases sueltas, solo para practicar.
@@ -210,11 +215,11 @@ function SurveysSection() {
           {showPractice && (
             <>
               <p className="text-sm text-muted-foreground">
-                Para ensayar una fase sola. Recuerda terminarla antes de crear la presentación completa.
+                Para ensayar una fase sola. Puedes tener varias prácticas abiertas a la vez y no bloquean la presentación completa.
               </p>
               <div className="grid gap-4 sm:grid-cols-2">
                 {practice.map((s) => (
-                  <SurveyCard key={s._id} survey={s} active={active} compact />
+                  <SurveyCard key={s._id} survey={s} active={undefined} compact />
                 ))}
               </div>
             </>
@@ -267,9 +272,9 @@ function SurveyCard({
               disabled={createPresentation.isPending || !!active}
               onClick={() =>
                 createPresentation.mutate(
-                  { title: s.title, surveyId: s._id },
+                  { title: compact ? `Práctica · ${s.title}` : s.title, surveyId: s._id, practice: compact },
                   {
-                    onSuccess: (p) => toast.success(`Presentación creada: ${p.code}`),
+                    onSuccess: (p) => toast.success(`${compact ? "Práctica creada" : "Presentación creada"}: ${p.code}`),
                     onError: (e) => toast.error(e.message),
                   },
                 )
@@ -313,6 +318,7 @@ function PresentationsSection() {
               <span className="text-xs text-muted-foreground">
                 {new Date(p.createdAt).toLocaleString("es", { dateStyle: "short", timeStyle: "short" })}
               </span>
+              {p.practice && <Badge variant="secondary">Práctica</Badge>}
               {isActive(p) ? (
                 <>
                   <Badge className="bg-emerald-500/15 text-emerald-400">Activa</Badge>
@@ -334,5 +340,24 @@ function ErrorAlert({ message }: { message: string }) {
     <Alert variant="destructive">
       <AlertDescription>{message}</AlertDescription>
     </Alert>
+  );
+}
+
+// Quién entró al panel: admin o el presentador dueño de la clave.
+function SignedInAs({ adminKey }: { adminKey: string }) {
+  const { data } = useQuery({
+    queryKey: ["auth", "panel", adminKey],
+    queryFn: () => authApi.remote(adminKey),
+    staleTime: Infinity,
+  });
+  if (!data) return <span />;
+  const label =
+    data.role === "admin"
+      ? "Admin"
+      : `${completoDeck.owners?.[data.phase]?.name ?? "Presentador"} · Fase ${data.phase}`;
+  return (
+    <span className="flex items-center gap-2 rounded-full border border-white/10 px-3 py-1 text-sm text-muted-foreground">
+      <UserIcon className="size-3.5" /> {label}
+    </span>
   );
 }

@@ -96,6 +96,8 @@ export interface Presentation extends MongoDoc {
   // Solo una presentación puede estar activa; hay que terminarla para crear otra.
   isActive: boolean;
   endedAt: ISODate | null;
+  // Práctica de una fase: no cuenta para el límite de una presentación activa.
+  practice?: boolean;
 }
 
 export interface ActivePresentation {
@@ -110,6 +112,7 @@ export interface PresentationSnapshot {
 export interface CreatePresentationInput {
   title: string;
   surveyId: ObjectId;
+  practice?: boolean;
 }
 
 export type UpdateStateInput = Partial<PresentationState>;
