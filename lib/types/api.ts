@@ -27,6 +27,8 @@ export interface QuestionOption {
 export interface Question {
   _id: ObjectId;
   text: string;
+  // Aclaración opcional bajo la pregunta.
+  description?: string;
   type: QuestionType;
   options: QuestionOption[];
   min?: number;
@@ -41,6 +43,7 @@ export interface Survey extends MongoDoc {
 
 export interface QuestionInput {
   text: string;
+  description?: string;
   type: QuestionType;
   options?: QuestionOption[];
   min?: number;

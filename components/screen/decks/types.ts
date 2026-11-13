@@ -52,5 +52,5 @@ export interface Deck {
   // Tema de la fase y sus secciones, para la agenda de la presentación completa.
   agenda?: { title: string; items: string[] };
   // Preguntas y votos de ejemplo para /screen/preview (mismas que el seed).
-  preview?: { text: string; options: string[]; counts: number[] }[];
+  preview?: { text: string; description?: string; options: string[]; counts: number[] }[];
 }

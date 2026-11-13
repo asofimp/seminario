@@ -317,6 +317,7 @@ function QuestionForm({
       <div className="flex flex-col gap-2">
         <span className="text-xs font-medium text-accent">{position}</span>
         <h1 className="text-2xl leading-snug font-semibold">{question.text}</h1>
+        {question.description && <p className="text-muted-foreground">{question.description}</p>}
         {question.type === QuestionType.MULTIPLE && (
           <p className="text-sm text-muted-foreground">Puedes elegir varias opciones.</p>
         )}

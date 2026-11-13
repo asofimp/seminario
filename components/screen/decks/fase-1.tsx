@@ -47,8 +47,13 @@ export const fase1Deck: Deck = {
   surveyTitle: "Fase 1 · Agentes de IA y su aplicación",
   agenda: { title: "Agentes de IA y su aplicación", items: AGENDA },
   preview: [
-    { text: "¿Has usado alguna herramienta de IA?", options: ["Sí, a diario", "Sí, de vez en cuando", "Nunca"], counts: [14, 9, 2] },
-    { text: "¿Has usado un agente de IA?", options: ["Sí", "No", "No estoy seguro"], counts: [6, 8, 11] },
+    { text: "¿Has utilizado una IA para resolver algo?", description: "Hacerle una pregunta y recibir una respuesta.", options: ["Sí", "No"], counts: [22, 3] },
+    {
+      text: "¿Has usado un agente de IA?",
+      description: "No solo para preguntarle algo, sino delegarle una tarea para que la ejecute por su cuenta.",
+      options: ["Sí", "No"],
+      counts: [9, 16],
+    },
     {
       text: "Su empresa ya tiene un agente de IA de ciberseguridad. ¿Cuánta autonomía le darían?",
       options: ["Que solo recomiende y yo apruebo", "Que actúe dentro de límites y yo vigile", "Que decida y ejecute solo", "Ninguna: todavía no confío"],
@@ -99,7 +104,7 @@ export const fase1Deck: Deck = {
       duration: "~0:40",
       questionIndex: 0,
       notes:
-        "Abrir la votación en la web. Mostrar la gráfica de la pregunta 1 y comentarla (casi todos usan IA).",
+        "Abrir la votación en la web. Mostrar la gráfica de la pregunta 1 y comentarla: casi todos ya le han preguntado algo a una IA.",
       render: (ctx) => <VoteSlide ctx={ctx} questionIndex={0} kicker="Agentes con IA" />,
     },
     {
@@ -107,7 +112,7 @@ export const fase1Deck: Deck = {
       duration: "~0:35",
       questionIndex: 1,
       notes:
-        "Mostrar la gráfica de la pregunta 2: comentar el porcentaje de “No estoy seguro” y “No”. No dar aún la definición: “al terminar sabrán la diferencia”.",
+        "Mostrar la gráfica de la pregunta 2 y compararla con la 1: muchos preguntan a una IA, pocos le delegan tareas. No dar aún la definición: “al terminar sabrán la diferencia”.",
       render: (ctx) => <VoteSlide ctx={ctx} questionIndex={1} kicker="Agentes con IA" />,
     },
 

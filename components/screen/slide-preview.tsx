@@ -61,6 +61,7 @@ export function SlidePreview({
   const questions: Question[] = sample.map((q, i) => ({
     _id: `preview-q${i}`,
     text: q.text,
+    description: q.description,
     type: QuestionType.SINGLE,
     options: q.options.map((label, j) => ({ value: String.fromCharCode(97 + j), label })),
   }));

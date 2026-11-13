@@ -47,6 +47,11 @@ export function VoteSlide({ ctx, questionIndex, kicker }: { ctx: SlideContext; q
       <div className="flex flex-col gap-[1.5vh]">
         <Kicker>{kicker}</Kicker>
         <Title className="max-w-[75%]">{question.text}</Title>
+        {question.description && (
+          <p className="max-w-[60%] text-[clamp(1.05rem,1.7vw,1.85rem)] leading-snug text-neutral-400">
+            {question.description}
+          </p>
+        )}
       </div>
 
       <div className="flex flex-col gap-[2.5vh]">
