@@ -114,6 +114,7 @@ export function useLivePresentation(
     // cierra la conexión (reinicio, Render despertando, error temporal). En ese
     // caso reintentamos nosotros, salvo errores definitivos (clave o código).
     let permanent = false;
+    let slowRetry: ReturnType<typeof setTimeout> | undefined;
     // Si ya cargó la presentación una vez, un rechazo posterior es temporal
     // (reinicio del servidor, base de datos despertando): nunca se rinde.
     let loadedOnce = !!qc.getQueryData(snapshotKey);
@@ -181,8 +182,16 @@ export function useLivePresentation(
       wsLog(tag, `excepción del servidor: ${message}`);
       // Rechazos de conexión que no se arreglan reintentando.
       if (/invalid key|missing or invalid|not found/i.test(message) && !loadedOnce) {
+        // Nunca se rinde del todo (p. ej. Render despertando respondió "no
+        // encontrada"): deja de insistir rápido y vuelve a probar cada 30 s.
         permanent = true;
         setError(message);
+        clearTimeout(slowRetry);
+        slowRetry = setTimeout(() => {
+          wsLog(tag, "reintento lento tras un rechazo");
+          permanent = false;
+          reconnect();
+        }, 30000);
       } else if (!/reintentando/i.test(message)) {
         setError(message);
       }
@@ -199,6 +208,7 @@ export function useLivePresentation(
 
     socket.on("presentation:snapshot", (s) => {
       clearTimeout(snapshotTimer);
+      setError(null);
       checkNonce(s.presentation.state.reconnectNonce);
       loadedOnce = true;
       writeSnapshot(() => s);
@@ -243,7 +253,6 @@ export function useLivePresentation(
       if (socket.connected && haveSnapshot) return;
       wsLog(tag, `${socket.connected ? "conectado sin presentación" : "sin socket"}: respaldo por REST (activo=${socket.active}, definitivo=${permanent})`);
       if (!permanent && !socket.active) socket.connect();
-      if (!loadedOnce && permanent) return;
       const current = qc.getQueryData<PresentationSnapshot>(snapshotKey);
       const load = current
         ? presentationsApi.state(code).then(({ state }) => {
@@ -252,6 +261,7 @@ export function useLivePresentation(
             return { state, changed };
           })
         : presentationsApi.snapshot(code).then((s) => {
+            setError(null);
             writeSnapshot(() => s);
             return { state: s.presentation.state, changed: true };
           });
@@ -296,6 +306,7 @@ export function useLivePresentation(
     return () => {
       clearTimeout(retryTimer);
       clearTimeout(snapshotTimer);
+      clearTimeout(slowRetry);
       clearInterval(watchdog);
       clearTimeout(healthStart);
       clearInterval(health);
